@@ -126,6 +126,44 @@
     background:var(--white);color:var(--ink);
   }
   .acts button.ghost{background:none;border:1px solid var(--line);color:var(--white);font-weight:600;}
+  /* ---- iPad などの大きい画面 ---- */
+  @media (min-width:700px){
+    #app{max-width:620px;padding:32px 28px calc(28px + env(safe-area-inset-bottom));}
+    .title{font-size:1.4rem;}
+    .lead{font-size:1rem;}
+    .unit{padding:20px 22px;}
+    .unit b{font-size:1.2rem;}
+    .unit span{font-size:.9rem;}
+    .unit .mark{width:44px;height:44px;font-size:1.4rem;}
+    .count,.count button{font-size:.95rem;}
+    .count button{padding:10px 20px;}
+    .bar{font-size:.95rem;}
+    .bar .quit{padding:8px 16px;font-size:.9rem;}
+    .q{font-size:3.6rem;}
+    .q small{font-size:1.1rem;}
+    .slot{font-size:3rem;min-height:4.4rem;}
+    .slot .pre{font-size:2.1rem;}
+    .verdict{font-size:1.15rem;}
+    .pad{gap:12px;}
+    .pad button{height:76px;font-size:1.9rem;}
+    .go{margin-top:12px;height:72px;font-size:1.3rem;}
+    .score .big{font-size:5.5rem;}
+    .score .sub{font-size:1rem;}
+    .review h2{font-size:.95rem;}
+    .row{font-size:1.25rem;padding:14px 18px;}
+    .row .mine{font-size:.9rem;}
+    .row .mine b{font-size:1.2rem;}
+    .acts button{height:64px;font-size:1.1rem;}
+  }
+  /* iPad 横向き：高さが足りないので少しつめる */
+  @media (min-width:700px) and (max-height:820px){
+    #app{padding-top:18px;padding-bottom:calc(16px + env(safe-area-inset-bottom));}
+    .stage{padding:12px 0;}
+    .q{font-size:3rem;}
+    .slot{margin-top:14px;}
+    .pad button{height:60px;}
+    .go{height:60px;}
+  }
   @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
 </style>
 </head>
@@ -144,6 +182,8 @@ function rndNz(a, b){ let n; do { n = rnd(a, b); } while (n === 0); return n; }
 // 配列からランダムに1つ
 function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
 
+// 負の数を「−7」のように全角マイナスで表す
+function numText(n){ return n < 0 ? '−' + Math.abs(n) : String(n); }
 // 数を「(＋3)」「(−7)」の形にする
 function signed(n){ return '(' + (n < 0 ? '−' + Math.abs(n) : '＋' + n) + ')'; }
 // 式の途中の「＋5」「－5」
@@ -188,10 +228,10 @@ function genMulDiv(){
   }
   const a = rndNz(-10, 10), b = rndNz(-6, 6), c = rndNz(-6, 6);
   if (Math.random() < 0.5){
-    return { text: a + ' ＋ ' + signed(b) + ' × ' + signed(c), answer: a + b * c };
+    return { text: numText(a) + ' ＋ ' + signed(b) + ' × ' + signed(c), answer: a + b * c };
   }
   const q = rndNz(-6, 6);
-  return { text: a + ' － ' + signed(b * q) + ' ÷ ' + signed(b), answer: a - q };
+  return { text: numText(a) + ' － ' + signed(b * q) + ' ÷ ' + signed(b), answer: a - q };
 }
 
 // --- 単元3：文字と式（式の値）---
@@ -200,14 +240,14 @@ function genExprValue(){
   const kind = pick(['linear','linear','square','double']);
   if (kind === 'linear'){
     const a = rndNz(-7, 7), b = rndNz(-12, 12);
-    return { text: '<small>x ＝ ' + (x < 0 ? '−' + Math.abs(x) : x) + ' のとき</small>' + term(a, 'x') + tail(b), answer: a * x + b };
+    return { text: '<small>x ＝ ' + numText(x) + ' のとき</small>' + term(a, 'x') + tail(b), answer: a * x + b };
   }
   if (kind === 'square'){
     const a = pick([1, 1, 2, -1, 3]), b = rndNz(-9, 9);
-    return { text: '<small>x ＝ ' + (x < 0 ? '−' + Math.abs(x) : x) + ' のとき</small>' + term(a, 'x²') + tail(b), answer: a * x * x + b };
+    return { text: '<small>x ＝ ' + numText(x) + ' のとき</small>' + term(a, 'x²') + tail(b), answer: a * x * x + b };
   }
   const a = rndNz(-5, 5), b = rndNz(-6, 6), c = rndNz(-5, 5);
-  return { text: '<small>x ＝ ' + (x < 0 ? '−' + Math.abs(x) : x) + ' のとき</small>' + a + '(' + term(1, 'x') + tail(b) + ')' + tail(c), answer: a * (x + b) + c };
+  return { text: '<small>x ＝ ' + numText(x) + ' のとき</small>' + numText(a) + '(' + term(1, 'x') + tail(b) + ')' + tail(c), answer: a * (x + b) + c };
 }
 
 // --- 単元4：一次方程式 ---
@@ -216,7 +256,7 @@ function genEquation(){
   const kind = pick(['basic','basic','both','paren']);
   if (kind === 'basic'){
     const a = rndNz(-7, 7), b = rndNz(-12, 12);
-    return { text: term(a, 'x') + tail(b) + ' ＝ ' + (a * x + b), answer: x, prefix: 'x ＝' };
+    return { text: term(a, 'x') + tail(b) + ' ＝ ' + numText(a * x + b), answer: x, prefix: 'x ＝' };
   }
   if (kind === 'both'){
     let a = rndNz(-7, 7), c = rndNz(-7, 7);
@@ -225,7 +265,7 @@ function genEquation(){
     return { text: term(a, 'x') + tail(b) + ' ＝ ' + term(c, 'x') + tail(d), answer: x, prefix: 'x ＝' };
   }
   const a = rndNz(-5, 5), b = rndNz(-8, 8);
-  return { text: a + '(' + 'x' + tail(b) + ')' + ' ＝ ' + a * (x + b), answer: x, prefix: 'x ＝' };
+  return { text: numText(a) + '(' + 'x' + tail(b) + ')' + ' ＝ ' + numText(a * (x + b)), answer: x, prefix: 'x ＝' };
 }
 
 const UNITS = [
@@ -341,7 +381,7 @@ function press(k){
 function draw(){
   const val = document.getElementById('val');
   const go = document.getElementById('go');
-  val.textContent = state.input === '' || state.input === '-' ? (state.input || '0') : state.input;
+  val.textContent = state.input === '' ? '0' : state.input.replace('-', '−');
   val.style.color = state.input === '' ? 'var(--dim)' : '';
   go.disabled = !/^-?\d+$/.test(state.input);
 }
@@ -359,7 +399,7 @@ function submit(){
   const go = document.getElementById('go');
   slot.classList.add(ok ? 'ok' : 'ng');
   verdict.className = 'verdict ' + (ok ? 'ok' : 'ng');
-  verdict.innerHTML = ok ? '正解' : '正しい答えは <em class="num">' + q.answer + '</em>';
+  verdict.innerHTML = ok ? '正解' : '正しい答えは <em class="num">' + numText(q.answer) + '</em>';
 
   if (ok){
     go.textContent = '正解';
@@ -395,7 +435,7 @@ function screenResult(){
       ${wrong.length === 0 ? '<h2>全問正解です。</h2>' : '<h2>まちがえた問題</h2>' + wrong.map(r => `
         <div class="row">
           <span class="num">${r.q.text.replace(/<small>.*?<\/small>/, '')}</span>
-          <span class="mine">きみの答え ${r.mine}<b class="num">${r.q.prefix ? 'x ＝ ' : ''}${r.q.answer}</b></span>
+          <span class="mine">きみの答え ${numText(r.mine)}<b class="num">${r.q.prefix ? 'x ＝ ' : ''}${numText(r.q.answer)}</b></span>
         </div>`).join('')}
     </div>
     <div class="acts">
