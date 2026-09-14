@@ -10,6 +10,7 @@
   :root{
     --ink:#0E1F33;
     --panel:#16304C;
+    --paper:#10263D;
     --line:#27496E;
     --white:#F5F8FB;
     --dim:#8FA8C2;
@@ -18,6 +19,7 @@
     --gold:#F4C34E;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  [hidden]{display:none!important;}
   html,body{height:100%;margin:0;}
   body{
     background:var(--ink);
@@ -25,6 +27,7 @@
     font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
     display:flex;justify-content:center;
     overscroll-behavior:none;
+    touch-action:manipulation;
   }
   #app{
     width:100%;max-width:480px;
@@ -64,47 +67,84 @@
   .count button[aria-pressed="true"]{background:var(--white);color:var(--ink);border-color:var(--white);font-weight:700;}
 
   /* ---- 出題 ---- */
+  #app.is-quiz{
+    height:100vh;height:100dvh;min-height:0;
+    padding-top:14px;padding-bottom:calc(14px + env(safe-area-inset-bottom));
+    -webkit-user-select:none;user-select:none;
+  }
   .bar{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;color:var(--dim);}
   .bar .quit{padding:4px 10px;border:1px solid var(--line);border-radius:999px;font-size:.75rem;}
-  .track{height:3px;background:var(--line);border-radius:2px;margin:12px 0 0;overflow:hidden;}
+  .track{height:3px;background:var(--line);border-radius:2px;margin:10px 0 0;overflow:hidden;flex:none;}
   .track i{display:block;height:100%;background:var(--gold);width:0;transition:width .25s;}
-  .stage{
-    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:26px 0;text-align:center;
-  }
+  .main{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;margin-top:10px;}
+  .left{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;}
   .q{
-    font-size:clamp(2rem,9.5vw,3.1rem);font-weight:700;line-height:1.25;
-    letter-spacing:.01em;
+    text-align:center;font-size:clamp(1.6rem,7vw,2.4rem);font-weight:700;line-height:1.25;
+    letter-spacing:.01em;padding:2px 0;
   }
-  .q small{display:block;font-size:.9rem;font-weight:400;color:var(--dim);margin-bottom:14px;letter-spacing:.02em;}
-  .slot{
-    margin-top:24px;display:flex;align-items:baseline;justify-content:center;gap:8px;
-    font-size:2.2rem;font-weight:700;min-height:3.4rem;
-  }
-  .slot .pre{font-size:1.6rem;color:var(--dim);}
-  .slot .val{
-    min-width:2.2ch;border-bottom:3px solid var(--line);padding:0 6px 4px;
-  }
-  .slot.ok .val{border-color:var(--ok);color:var(--ok);}
-  .slot.ng .val{border-color:var(--ng);color:var(--ng);}
-  .verdict{margin-top:14px;font-size:.95rem;min-height:1.6rem;font-weight:700;}
-  .verdict.ok{color:var(--ok);}
-  .verdict.ng{color:var(--ng);}
-  .verdict em{font-style:normal;color:var(--white);}
+  .q small{display:block;font-size:.85rem;font-weight:400;color:var(--dim);margin-bottom:4px;letter-spacing:.02em;}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:12px;}
+  .work{flex:1;min-height:150px;display:flex;flex-direction:column;overflow:hidden;}
+  .head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.78rem;color:var(--dim);}
+  .work .head{padding:6px 6px 6px 12px;border-bottom:1px solid var(--line);}
+  .tools{display:flex;gap:6px;}
+  .tools button{padding:6px 11px;border:1px solid var(--line);border-radius:999px;font-size:.75rem;color:var(--dim);}
+  .tools button[aria-pressed="true"]{background:var(--white);border-color:var(--white);color:var(--ink);font-weight:700;}
+  .ink{position:relative;flex:1;min-height:0;touch-action:none;-webkit-touch-callout:none;}
+  .ink canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+
+  .right{flex:none;display:flex;flex-direction:column;gap:8px;min-height:0;}
+  .answer{display:flex;flex-direction:column;gap:8px;}
+  .ans-row{display:flex;align-items:center;gap:10px;}
+  .ans-row .pre{font-size:1.5rem;font-weight:700;color:var(--dim);flex:none;}
+  .ans{flex:1;height:96px;}
+  .ans::after{content:'';position:absolute;left:16px;right:16px;bottom:22%;border-bottom:1px dashed var(--line);pointer-events:none;}
+  .ans .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--line);font-size:.9rem;pointer-events:none;}
+  .read{display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-height:2.6rem;padding:0 4px;}
+  .read .label{font-size:.8rem;color:var(--dim);}
+  .read .val{font-size:2rem;font-weight:700;min-width:2.2ch;text-align:right;border-bottom:3px solid var(--line);padding:0 6px 2px;flex:none;}
+  .read .val.empty{color:var(--dim);}
+  .read.ok .val{border-color:var(--ok);color:var(--ok);}
+  .read.ok .label{color:var(--ok);font-size:1.1rem;font-weight:700;}
 
   /* ---- テンキー ---- */
-  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
-  .pad button{
-    background:var(--panel);border:1px solid var(--line);border-radius:12px;
-    height:60px;font-size:1.5rem;font-weight:600;
+  .keys{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+  .keys button{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    height:44px;font-size:1.25rem;font-weight:600;
   }
-  .pad button:active{background:#1C3A5C;}
+  .keys button:active{background:#1C3A5C;}
   .go{
-    margin-top:9px;width:100%;height:58px;border-radius:12px;
+    flex:none;width:100%;height:54px;border-radius:12px;
     background:var(--white);color:var(--ink);font-size:1.05rem;font-weight:700;
   }
   .go:disabled{opacity:.35;}
+  .go.ok{background:var(--ok);opacity:1;}
   .go.next{background:var(--gold);}
+
+  /* ---- 解説 ---- */
+  .right.explaining{flex:0 1 auto;max-height:62%;}
+  .explain{
+    flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--ng);border-radius:12px;
+  }
+  .ex-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 14px;}
+  .ex-top .mine{font-size:.85rem;color:var(--dim);}
+  .ex-top .mine b{color:var(--ng);font-size:1.1rem;margin-left:4px;}
+  .ex-top .correct{font-size:.95rem;font-weight:700;}
+  .ex-top .correct b{color:var(--ok);font-size:1.5rem;margin-left:6px;}
+  .hint{margin:10px 0 0;padding:8px 12px;border-radius:8px;background:#1C3A5C;font-size:.85rem;line-height:1.6;}
+  .explain h3{font-size:.8rem;color:var(--dim);font-weight:600;margin:14px 0 8px;}
+  .steps{list-style:none;margin:0;padding:0;counter-reset:st;display:flex;flex-direction:column;gap:12px;}
+  .steps li{counter-increment:st;position:relative;padding-left:32px;}
+  .steps li::before{
+    content:counter(st);position:absolute;left:0;top:2px;width:22px;height:22px;border-radius:50%;
+    background:var(--line);color:var(--gold);font-size:.78rem;font-weight:700;display:grid;place-items:center;
+  }
+  .steps p{margin:0;font-size:.9rem;line-height:1.7;}
+  .steps b{color:var(--gold);font-weight:700;}
+  .steps .m{margin-top:4px;font-size:1.15rem;font-weight:600;line-height:1.6;}
+  .steps .m span{display:block;}
 
   /* ---- 結果 ---- */
   .score{text-align:center;padding:30px 0 10px;}
@@ -113,22 +153,29 @@
   .score .sub{color:var(--dim);font-size:.85rem;margin-top:10px;}
   .review{margin:20px 0 6px;display:flex;flex-direction:column;gap:8px;}
   .review h2{font-size:.82rem;color:var(--dim);font-weight:600;margin:0 0 2px;}
-  .row{
-    background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--ng);
-    border-radius:10px;padding:11px 14px;display:flex;justify-content:space-between;
+  .row{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--ng);border-radius:10px;}
+  .row summary{
+    list-style:none;cursor:pointer;padding:11px 14px;display:flex;justify-content:space-between;
     align-items:center;gap:12px;font-size:1rem;
   }
-  .row .mine{font-size:.8rem;color:var(--dim);text-align:right;line-height:1.5;}
+  .row summary::-webkit-details-marker{display:none;}
+  .row summary small{display:block;font-size:.75rem;font-weight:400;color:var(--dim);}
+  .row .mine{font-size:.8rem;color:var(--dim);text-align:right;line-height:1.5;flex:none;}
   .row .mine b{display:block;color:var(--ok);font-size:1rem;font-weight:700;}
+  .row .open{display:block;color:var(--gold);font-size:.72rem;}
+  .row[open] .open{visibility:hidden;}
+  .row-ex{padding:12px 14px 14px;border-top:1px solid var(--line);}
   .acts{margin-top:auto;padding-top:20px;display:flex;flex-direction:column;gap:9px;}
   .acts button{
     height:54px;border-radius:12px;font-size:.98rem;font-weight:700;
     background:var(--white);color:var(--ink);
   }
   .acts button.ghost{background:none;border:1px solid var(--line);color:var(--white);font-weight:600;}
+
   /* ---- iPad などの大きい画面 ---- */
   @media (min-width:700px){
     #app{max-width:620px;padding:32px 28px calc(28px + env(safe-area-inset-bottom));}
+    #app.is-quiz{max-width:780px;padding-top:18px;padding-bottom:calc(16px + env(safe-area-inset-bottom));}
     .title{font-size:1.4rem;}
     .lead{font-size:1rem;}
     .unit{padding:20px 22px;}
@@ -139,30 +186,52 @@
     .count button{padding:10px 20px;}
     .bar{font-size:.95rem;}
     .bar .quit{padding:8px 16px;font-size:.9rem;}
-    .q{font-size:3.6rem;}
-    .q small{font-size:1.1rem;}
-    .slot{font-size:3rem;min-height:4.4rem;}
-    .slot .pre{font-size:2.1rem;}
-    .verdict{font-size:1.15rem;}
-    .pad{gap:12px;}
-    .pad button{height:76px;font-size:1.9rem;}
-    .go{margin-top:12px;height:72px;font-size:1.3rem;}
+    .main{gap:12px;margin-top:12px;}
+    .left{gap:12px;}
+    .q{font-size:2.8rem;}
+    .q small{font-size:1.05rem;}
+    .head{font-size:.9rem;}
+    .tools{gap:8px;}
+    .tools button{padding:8px 16px;font-size:.88rem;}
+    .ans{height:120px;}
+    .ans-row .pre{font-size:2rem;}
+    .read .label{font-size:.9rem;}
+    .read .val{font-size:2.4rem;}
+    .keys{grid-template-columns:repeat(12,1fr);gap:8px;}
+    .keys button{height:54px;font-size:1.5rem;}
+    .go{height:62px;font-size:1.2rem;}
+    .explain{padding:18px 20px;}
+    .ex-top .mine{font-size:.95rem;}
+    .ex-top .correct{font-size:1.05rem;}
+    .ex-top .correct b{font-size:1.8rem;}
+    .hint{font-size:.98rem;}
+    .explain h3{font-size:.9rem;}
+    .steps{gap:16px;}
+    .steps li{padding-left:36px;}
+    .steps li::before{width:26px;height:26px;font-size:.88rem;}
+    .steps p{font-size:1.02rem;}
+    .steps .m{font-size:1.35rem;}
     .score .big{font-size:5.5rem;}
     .score .sub{font-size:1rem;}
     .review h2{font-size:.95rem;}
-    .row{font-size:1.25rem;padding:14px 18px;}
+    .row summary{font-size:1.25rem;padding:14px 18px;}
+    .row summary small{font-size:.85rem;}
     .row .mine{font-size:.9rem;}
     .row .mine b{font-size:1.2rem;}
+    .row-ex{padding:14px 18px 18px;}
     .acts button{height:64px;font-size:1.1rem;}
   }
-  /* iPad 横向き：高さが足りないので少しつめる */
-  @media (min-width:700px) and (max-height:820px){
-    #app{padding-top:18px;padding-bottom:calc(16px + env(safe-area-inset-bottom));}
-    .stage{padding:12px 0;}
-    .q{font-size:3rem;}
-    .slot{margin-top:14px;}
-    .pad button{height:60px;}
-    .go{height:60px;}
+  /* iPad 横向き：左に問題と計算スペース、右に答えと解説 */
+  @media (min-width:1000px) and (orientation:landscape){
+    #app.is-quiz{max-width:1200px;}
+    .main{flex-direction:row;gap:16px;}
+    .left{flex:1.4;min-width:0;}
+    .q{font-size:2.4rem;}
+    .right{flex:1;min-width:0;}
+    .right.explaining{flex:1;max-height:none;}
+    .ans{height:140px;}
+    .keys{grid-template-columns:repeat(3,1fr);}
+    .keys button{height:52px;}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
 </style>
@@ -173,6 +242,8 @@
 <script>
 /* ============================================================
    1. 問題を作る部分（ここを増やせば単元が増えます）
+      問題は { text, answer, prefix?, steps } の形で返す。
+      steps は、まちがえたときに見せる「とき方」。{ say: 説明, math: 式 } の配列。
    ============================================================ */
 
 // a以上b以下の整数をランダムに1つ返す
@@ -186,6 +257,8 @@ function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
 function numText(n){ return n < 0 ? '−' + Math.abs(n) : String(n); }
 // 数を「(＋3)」「(−7)」の形にする
 function signed(n){ return '(' + (n < 0 ? '−' + Math.abs(n) : '＋' + n) + ')'; }
+// 負の数だけ（ ）をつける：「(−3)」「3」
+function parenN(n){ return n < 0 ? '(' + numText(n) + ')' : String(n); }
 // 式の途中の「＋5」「－5」
 function tail(n){ return (n < 0 ? ' － ' : ' ＋ ') + Math.abs(n); }
 // 「4x」「−x」「x」のような項
@@ -194,17 +267,106 @@ function term(c, v){
   if (c === -1) return '−' + v;
   return (c < 0 ? '−' : '') + Math.abs(c) + v;
 }
+// 式の途中の「＋ 3x」「－ x」
+function tailTerm(c, v){ return (c < 0 ? ' － ' : ' ＋ ') + term(Math.abs(c), v); }
+// 「4x」の x に数を入れた形：「4 × (−3)」
+function times(a, s){ return a === 1 ? s : numText(a) + ' × ' + s; }
+function sup(n){ return n === 2 ? '²' : '³'; }
+
+/* ---- とき方を作る部品 ---- */
+
+// かけ算・わり算の答えの符号
+function signNote(nums){
+  const k = nums.filter(n => n < 0).length;
+  if (k === 0) return '負の数がないので、答えの符号は ＋ です。';
+  return `負の数が ${k} 個あります。` + (k % 2
+    ? '<b>負の数が奇数個（1個、3個…）のときは、答えの符号は −</b> です。'
+    : '<b>負の数が偶数個（2個、4個…）のときは、答えの符号は ＋</b> です。');
+}
+
+// ひき算をたし算に直す
+function toAddStep(text, terms){
+  return { say: '<b>ひき算は、ひく数の符号を変えると、たし算に直せます</b>。', math: text + ' ＝ ' + terms.map(signed).join(' ＋ ') };
+}
+
+// (a) ＋ (b) の計算
+function explainAdd(a, b){
+  const A = Math.abs(a), B = Math.abs(b), head = signed(a) + ' ＋ ' + signed(b);
+  if ((a > 0) === (b > 0)){
+    const s = a > 0 ? '＋' : '−';
+    return [
+      { say: `どちらも${a > 0 ? '正の数' : '負の数'}で、符号が同じです。<b>符号が同じときは、絶対値（符号をとった数）をたして、同じ符号「${s}」をつけます</b>。`, math: `${A} ＋ ${B} ＝ ${A + B}` },
+      { say: `符号「${s}」をつけて、答えを出します。`, math: head + ' ＝ ' + numText(a + b) }
+    ];
+  }
+  const steps = [{
+    say: '符号がちがいます。<b>符号がちがうときは、絶対値の大きいほうから小さいほうをひいて、絶対値が大きいほうの符号をつけます</b>。',
+    math: `${Math.max(A, B)} － ${Math.min(A, B)} ＝ ${Math.abs(A - B)}`
+  }];
+  if (A === B) steps.push({ say: '絶対値が同じなので、答えは 0 です。', math: head + ' ＝ 0' });
+  else {
+    const big = A > B ? a : b;
+    steps.push({ say: `絶対値が大きいのは ${signed(big)} なので、符号は「${big > 0 ? '＋' : '−'}」です。`, math: head + ' ＝ ' + numText(a + b) });
+  }
+  return steps;
+}
+
+// 3つの数のたし算・ひき算
+function explainSum(text, terms, hasSub){
+  const steps = hasSub ? [toAddStep(text, terms)] : [];
+  const pos = terms.filter(n => n > 0), neg = terms.filter(n => n < 0);
+  const P = pos.reduce((s, n) => s + n, 0), N = neg.reduce((s, n) => s + n, 0);
+  if (!pos.length || !neg.length){
+    const s = pos.length ? '＋' : '−';
+    steps.push({ say: `ぜんぶ${pos.length ? '正の数' : '負の数'}です。<b>絶対値をたして、符号「${s}」をつけます</b>。`, math: terms.map(signed).join(' ＋ ') + ' ＝ ' + numText(P + N) });
+    return steps;
+  }
+  steps.push({ say: '<b>正の数どうし、負の数どうしを集めます</b>。たし算は、順番を入れかえても答えは変わりません。', math: pos.concat(neg).map(signed).join(' ＋ ') });
+  const lines = [];
+  if (pos.length > 1) lines.push(pos.map(signed).join(' ＋ ') + ' ＝ ' + numText(P));
+  if (neg.length > 1) lines.push(neg.map(signed).join(' ＋ ') + ' ＝ ' + numText(N));
+  if (lines.length){
+    steps.push({ say: neg.length > 1 ? 'それぞれまとめます。負の数どうしは、絶対値をたして − をつけます。' : '正の数どうしをまとめます。', math: lines });
+  }
+  return steps.concat(explainAdd(P, N));
+}
+
+// かけ算・わり算（2つの数）
+function explainMulDiv(text, a, b, op, ans){
+  return [
+    { say: `${op === '×' ? 'かけ算' : 'わり算'}は、<b>① 答えの符号を決める → ② 絶対値（符号をとった数）で計算する</b> の順で考えます。` },
+    { say: '① ' + signNote([a, b]) },
+    { say: '② 絶対値で計算します。', math: `${Math.abs(a)} ${op} ${Math.abs(b)} ＝ ${Math.abs(ans)}` },
+    { say: '符号をつけて、答えを出します。', math: text + ' ＝ ' + numText(ans) }
+  ];
+}
+
+// 方程式：両方の辺を x の係数でわる
+function divideStep(a, right, x){
+  if (a === 1) return [];
+  return [{
+    say: `両方の辺を、x の前の数 ${numText(a)} でわります。` + (a === -1 ? '（−1 でわると、符号が反対になります）' : ''),
+    math: `x ＝ ${numText(right)} ÷ ${parenN(a)} ＝ ${numText(x)}`
+  }];
+}
+// 方程式：移項
+function moveSay(n){
+  return `左の辺の「${tail(n).trim()}」を右の辺に<b>移項</b>します。<b>移項すると符号が変わります</b>（${tail(n).trim()} → ${tail(-n).trim()}）。`;
+}
 
 // --- 単元1：正負の数（たし算・ひき算）---
 function genAddSub(){
   if (Math.random() < 0.3){
     const a = rndNz(-12, 12), b = rndNz(-12, 12), c = rndNz(-9, 9);
     const o1 = pick(['+','-']), o2 = pick(['+','-']);
-    const ans = (o1 === '+' ? a + b : a - b) + (o2 === '+' ? c : -c);
-    return { text: signed(a) + (o1 === '+' ? ' ＋ ' : ' － ') + signed(b) + (o2 === '+' ? ' ＋ ' : ' － ') + signed(c), answer: ans };
+    const terms = [a, o1 === '+' ? b : -b, o2 === '+' ? c : -c];
+    const text = signed(a) + (o1 === '+' ? ' ＋ ' : ' － ') + signed(b) + (o2 === '+' ? ' ＋ ' : ' － ') + signed(c);
+    return { text, answer: terms[0] + terms[1] + terms[2], steps: explainSum(text, terms, o1 === '-' || o2 === '-') };
   }
   const a = rndNz(-15, 15), b = rndNz(-15, 15), o = pick(['+','-']);
-  return { text: signed(a) + (o === '+' ? ' ＋ ' : ' － ') + signed(b), answer: o === '+' ? a + b : a - b };
+  const text = signed(a) + (o === '+' ? ' ＋ ' : ' － ') + signed(b);
+  const bb = o === '+' ? b : -b;
+  return { text, answer: a + bb, steps: (o === '-' ? [toAddStep(text, [a, bb])] : []).concat(explainAdd(a, bb)) };
 }
 
 // --- 単元2：正負の数（かけ算・わり算・四則）---
@@ -212,60 +374,130 @@ function genMulDiv(){
   const kind = pick(['mul','div','pow','mix','mix']);
   if (kind === 'mul'){
     const a = rndNz(-12, 12), b = rndNz(-9, 9);
-    return { text: signed(a) + ' × ' + signed(b), answer: a * b };
+    const text = signed(a) + ' × ' + signed(b);
+    return { text, answer: a * b, steps: explainMulDiv(text, a, b, '×', a * b) };
   }
   if (kind === 'div'){
     const b = rndNz(-9, 9), q = rndNz(-9, 9);
-    return { text: signed(b * q) + ' ÷ ' + signed(b), answer: q };
+    const text = signed(b * q) + ' ÷ ' + signed(b);
+    return { text, answer: q, steps: explainMulDiv(text, b * q, b, '÷', q) };
   }
   if (kind === 'pow'){
     const a = rndNz(-6, 6), n = pick([2, 2, 3]);
+    const A = Math.abs(a), An = Math.pow(A, n);
+    const reps = s => Array(n).fill(s).join(' × ');
     // 「(−3)²」と「−3²」の違いを両方出す
     if (a < 0 && Math.random() < 0.5){
-      return { text: '−' + Math.abs(a) + (n === 2 ? '²' : '³'), answer: -Math.pow(Math.abs(a), n) };
+      const text = '−' + A + sup(n);
+      return { text, answer: -An, steps: [
+        { say: `${text} は、「${A}${sup(n)}」に − がついた数です。<b>${sup(n)} がついているのは ${A} だけ</b>で、− はかけません。`, math: `${text} ＝ −(${reps(A)})` },
+        { say: 'かっこの中を計算して、− をつけます。', math: `−(${reps(A)}) ＝ ${numText(-An)}` },
+        { say: `<b>(−${A})${sup(n)} とはちがう</b>ので注意しよう。(−${A})${sup(n)} は −${A} を ${n} 回かけるので、${numText(Math.pow(-A, n))} になります。` }
+      ]};
     }
-    return { text: '(' + (a < 0 ? '−' : '') + Math.abs(a) + ')' + (n === 2 ? '²' : '³'), answer: Math.pow(a, n) };
+    const base = '(' + numText(a) + ')', text = base + sup(n);
+    const steps = [{ say: `${text} は、<b>${numText(a)} を ${n} 回かける</b>という意味です。`, math: `${text} ＝ ${reps(base)}` }];
+    if (a < 0){
+      steps.push({ say: signNote(Array(n).fill(a)) });
+      steps.push({ say: '絶対値で計算して、符号をつけます。', math: [`${reps(A)} ＝ ${An}`, `${text} ＝ ${numText(Math.pow(a, n))}`] });
+    } else {
+      steps.push({ say: 'かけ算をします。', math: `${reps(A)} ＝ ${An}` });
+    }
+    return { text, answer: Math.pow(a, n), steps };
   }
   const a = rndNz(-10, 10), b = rndNz(-6, 6), c = rndNz(-6, 6);
+  const first = '<b>かけ算・わり算は、たし算・ひき算より先に計算します</b>。';
   if (Math.random() < 0.5){
-    return { text: numText(a) + ' ＋ ' + signed(b) + ' × ' + signed(c), answer: a + b * c };
+    const text = numText(a) + ' ＋ ' + signed(b) + ' × ' + signed(c);
+    return { text, answer: a + b * c, steps: [
+      { say: `${first}まず ${signed(b)} × ${signed(c)} を計算します。${signNote([b, c])}`, math: `${signed(b)} × ${signed(c)} ＝ ${numText(b * c)}` },
+      { say: '計算した結果を、元の式にもどします。', math: `${text} ＝ ${numText(a)} ＋ ${signed(b * c)}` }
+    ].concat(explainAdd(a, b * c)) };
   }
   const q = rndNz(-6, 6);
-  return { text: numText(a) + ' － ' + signed(b * q) + ' ÷ ' + signed(b), answer: a - q };
+  const text = numText(a) + ' － ' + signed(b * q) + ' ÷ ' + signed(b);
+  return { text, answer: a - q, steps: [
+    { say: `${first}まず ${signed(b * q)} ÷ ${signed(b)} を計算します。${signNote([b * q, b])}`, math: `${signed(b * q)} ÷ ${signed(b)} ＝ ${numText(q)}` },
+    { say: '結果を元の式にもどして、<b>ひき算は、ひく数の符号を変えて、たし算に直します</b>。', math: [`${text} ＝ ${numText(a)} － ${signed(q)}`, `＝ ${signed(a)} ＋ ${signed(-q)}`] }
+  ].concat(explainAdd(a, -q)) };
 }
 
 // --- 単元3：文字と式（式の値）---
 function genExprValue(){
   const x = rndNz(-6, 6);
   const kind = pick(['linear','linear','square','double']);
+  const cond = '<small>x ＝ ' + numText(x) + ' のとき</small>';
+  const put = `x に ${numText(x)} を入れます。` + (x < 0 ? '<b>負の数を入れるときは、かっこ（ ）をつけます</b>。' : '');
+  const X = parenN(x);
   if (kind === 'linear'){
-    const a = rndNz(-7, 7), b = rndNz(-12, 12);
-    return { text: '<small>x ＝ ' + numText(x) + ' のとき</small>' + term(a, 'x') + tail(b), answer: a * x + b };
+    const a = rndNz(-7, 7), b = rndNz(-12, 12), ax = a * x;
+    const expr = term(a, 'x') + tail(b);
+    const steps = [{ say: (a === 1 ? '' : `${term(a, 'x')} は「${numText(a)} × x」のことです。`) + put, math: `${expr} ＝ ${times(a, X)}${tail(b)}` }];
+    if (a !== 1) steps.push({ say: 'かけ算を先に計算します。' + signNote([a, x]), math: `${numText(a)} × ${X} ＝ ${numText(ax)}` });
+    steps.push({ say: '式にもどして、たし算の形にします。', math: `${numText(ax)}${tail(b)} ＝ ${signed(ax)} ＋ ${signed(b)}` });
+    return { text: cond + expr, answer: ax + b, steps: steps.concat(explainAdd(ax, b)) };
   }
   if (kind === 'square'){
-    const a = pick([1, 1, 2, -1, 3]), b = rndNz(-9, 9);
-    return { text: '<small>x ＝ ' + numText(x) + ' のとき</small>' + term(a, 'x²') + tail(b), answer: a * x * x + b };
+    const a = pick([1, 1, 2, -1, 3]), b = rndNz(-9, 9), x2 = x * x, ax2 = a * x2;
+    const expr = term(a, 'x²') + tail(b);
+    const steps = [{
+      say: '<b>x² は「x × x」</b>のことです。' + put + (x < 0 ? '負の数 × 負の数 なので、答えは ＋ になります。' : ''),
+      math: `x² ＝ ${X} × ${X} ＝ ${x2}`
+    }];
+    if (a !== 1) steps.push({ say: `${term(a, 'x²')} は「${numText(a)} × x²」のことです。`, math: `${numText(a)} × ${x2} ＝ ${numText(ax2)}` });
+    steps.push({ say: '式にもどして、たし算の形にします。', math: `${numText(ax2)}${tail(b)} ＝ ${signed(ax2)} ＋ ${signed(b)}` });
+    return { text: cond + expr, answer: ax2 + b, steps: steps.concat(explainAdd(ax2, b)) };
   }
-  const a = rndNz(-5, 5), b = rndNz(-6, 6), c = rndNz(-5, 5);
-  return { text: '<small>x ＝ ' + numText(x) + ' のとき</small>' + numText(a) + '(' + term(1, 'x') + tail(b) + ')' + tail(c), answer: a * (x + b) + c };
+  const a = rndNz(-5, 5), b = rndNz(-6, 6), c = rndNz(-5, 5), inner = x + b, m = a * inner;
+  const expr = numText(a) + '(x' + tail(b) + ')' + tail(c);
+  const steps = [
+    { say: '<b>かっこの中を先に計算します</b>。' + put, math: `x${tail(b)} ＝ ${X}${tail(b)} ＝ ${numText(inner)}` },
+    inner === 0
+      ? { say: `${numText(a)}( ) は「${numText(a)} × ( )」のことです。0 にどんな数をかけても 0 です。`, math: `${numText(a)} × 0 ＝ 0` }
+      : { say: `${numText(a)}( ) は「${numText(a)} × ( )」のことです。かっこの前の ${numText(a)} をかけます。${signNote([a, inner])}`, math: `${numText(a)} × ${parenN(inner)} ＝ ${numText(m)}` }
+  ];
+  if (m === 0) steps.push({ say: '式にもどします。0 にたしても、数は変わりません。', math: `0${tail(c)} ＝ ${numText(c)}` });
+  else steps.push({ say: '式にもどして、たし算の形にします。', math: `${numText(m)}${tail(c)} ＝ ${signed(m)} ＋ ${signed(c)}` }, ...explainAdd(m, c));
+  return { text: cond + expr, answer: m + c, steps };
 }
 
 // --- 単元4：一次方程式 ---
 function genEquation(){
   const x = rnd(-8, 8);
   const kind = pick(['basic','basic','both','paren']);
+  const X = parenN(x);
   if (kind === 'basic'){
-    const a = rndNz(-7, 7), b = rndNz(-12, 12);
-    return { text: term(a, 'x') + tail(b) + ' ＝ ' + numText(a * x + b), answer: x, prefix: 'x ＝' };
+    const a = rndNz(-7, 7), b = rndNz(-12, 12), r = a * x + b;
+    return { text: term(a, 'x') + tail(b) + ' ＝ ' + numText(r), answer: x, prefix: 'x ＝', steps: [
+      { say: moveSay(b), math: `${term(a, 'x')} ＝ ${numText(r)}${tail(-b)}` },
+      { say: '右の辺を計算します。', math: `${term(a, 'x')} ＝ ${numText(r - b)}` },
+      ...divideStep(a, r - b, x),
+      { say: `たしかめ：元の式の x に ${numText(x)} を入れると、左の辺が右の辺と同じ ${numText(r)} になります。`, math: `${times(a, X)}${tail(b)} ＝ ${numText(a * x)}${tail(b)} ＝ ${numText(r)}` }
+    ]};
   }
   if (kind === 'both'){
     let a = rndNz(-7, 7), c = rndNz(-7, 7);
     while (a === c) c = rndNz(-7, 7);
     const b = rndNz(-10, 10), d = a * x + b - c * x;
-    return { text: term(a, 'x') + tail(b) + ' ＝ ' + term(c, 'x') + tail(d), answer: x, prefix: 'x ＝' };
+    const right = term(c, 'x') + (d ? tail(d) : '');
+    return { text: term(a, 'x') + tail(b) + ' ＝ ' + right, answer: x, prefix: 'x ＝', steps: [
+      { say: '<b>x をふくむ項は左の辺に、数だけの項は右の辺に</b>移項します。<b>移項した項は符号が変わります</b>。',
+        math: `${term(a, 'x')}${tailTerm(-c, 'x')} ＝ ${d ? numText(d) + tail(-b) : numText(-b)}` },
+      { say: '両方の辺を、それぞれ計算します。', math: `${term(a - c, 'x')} ＝ ${numText(d - b)}` },
+      ...divideStep(a - c, d - b, x),
+      { say: `たしかめ：x に ${numText(x)} を入れると、左の辺も右の辺も ${numText(a * x + b)} になります。`,
+        math: [`左：${times(a, X)}${tail(b)} ＝ ${numText(a * x + b)}`, `右：${times(c, X)}${d ? tail(d) : ''} ＝ ${numText(c * x + d)}`] }
+    ]};
   }
-  const a = rndNz(-5, 5), b = rndNz(-8, 8);
-  return { text: numText(a) + '(' + 'x' + tail(b) + ')' + ' ＝ ' + numText(a * (x + b)), answer: x, prefix: 'x ＝' };
+  const a = rndNz(-5, 5), b = rndNz(-8, 8), r = a * (x + b);
+  return { text: numText(a) + '(x' + tail(b) + ') ＝ ' + numText(r), answer: x, prefix: 'x ＝', steps: [
+    a === 1
+      ? { say: '1(　) は、かっこの中と同じなので、かっこをはずします。', math: `x${tail(b)} ＝ ${numText(r)}` }
+      : { say: `両方の辺を、かっこの前の ${numText(a)} でわります。`, math: `x${tail(b)} ＝ ${numText(r)} ÷ ${parenN(a)} ＝ ${numText(x + b)}` },
+    { say: moveSay(b), math: `x ＝ ${numText(x + b)}${tail(-b)} ＝ ${numText(x)}` },
+    { say: `たしかめ：元の式の x に ${numText(x)} を入れると、左の辺が右の辺と同じ ${numText(r)} になります。`,
+      math: `${numText(a)} × (${numText(x)}${tail(b)}) ＝ ${numText(a)} × ${parenN(x + b)} ＝ ${numText(r)}` }
+  ]};
 }
 
 const UNITS = [
@@ -292,21 +524,342 @@ function makeQuestions(unitId, n){
 }
 
 /* ============================================================
-   2. 画面の状態
+   2. 手書き数字の読みとり
+      数字の見本の形と、書いた線を「点の集まり」にしてくらべ、
+      いちばん近い数字を選ぶ（$P Point-Cloud Recognizer という方法）。
+      読みまちがえた字をキーで直すと、その形を見本に追加して覚える。
+   ============================================================ */
+const INK_N = 32;             // 1文字を何個の点でくらべるか
+const INK_LIMIT = 9;          // これより遠い形は「読みとれない」にする
+const INK_KEY = 'math-drill-ink';
+
+// 見本の形を作る部品（横0〜0.7、たて0〜1の枠で考える。角度は右が0°、下が90°）
+function arc(cx, cy, rx, ry, t0, t1){
+  const pts = [];
+  for (let k = 0; k <= 24; k++){
+    const t = (t0 + (t1 - t0) * k / 24) * Math.PI / 180;
+    pts.push({ x: cx + rx * Math.cos(t), y: cy + ry * Math.sin(t) });
+  }
+  return pts;
+}
+function line(...xy){
+  const pts = [];
+  for (let k = 0; k < xy.length; k += 2) pts.push({ x: xy[k], y: xy[k + 1] });
+  return pts;
+}
+// 数字ごとの書き方のパターン。[ 1画目, 2画目, … ]、1画は部品をつなげたもの
+const SHAPES = {
+  '0': [ [[arc(.35, .5, .33, .5, 270, 630)]], [[arc(.35, .5, .22, .5, 250, 610)]] ],
+  '1': [ [[line(.35, 0, .35, 1)]], [[line(.22, .14, .4, 0, .4, 1)]], [[line(.22, .14, .4, 0, .4, 1)], [line(.12, 1, .68, 1)]] ],
+  '2': [ [[arc(.35, .3, .32, .3, 190, 360), line(.67, .3, .02, 1, .7, 1)]], [[arc(.35, .3, .32, .3, 200, 400), line(.02, 1, .7, 1)]] ],
+  '3': [ [[arc(.33, .26, .3, .26, 200, 450), arc(.33, .74, .34, .26, 270, 520)]], [[line(.05, 0, .65, 0, .3, .42), arc(.33, .71, .34, .29, 280, 520)]] ],
+  '4': [ [[line(.5, 0, 0, .68, .72, .68)], [line(.52, .28, .52, 1)]], [[line(.12, 0, .05, .62, .72, .62)], [line(.55, 0, .55, 1)]], [[line(.55, 1, .55, 0, 0, .68, .72, .68)]] ],
+  '5': [ [[line(.15, 0, .1, .44), arc(.36, .7, .32, .29, 235, 500)], [line(.15, 0, .65, 0)]], [[line(.65, 0, .15, 0, .1, .44), arc(.36, .7, .32, .29, 235, 500)]] ],
+  '6': [ [[arc(.62, .72, .57, .72, 265, 180), arc(.35, .72, .3, .28, 180, -180)]] ],
+  '7': [ [[line(.02, 0, .68, 0, .25, 1)]], [[line(.02, .22, .02, 0, .68, 0, .3, 1)]] ],
+  '8': [ [[arc(.35, .25, .26, .25, 90, 450), arc(.35, .74, .33, .26, 270, 630)]] ],
+  '9': [ [[arc(.35, .28, .3, .28, 0, -360), line(.65, .28, .62, 1)]], [[arc(.35, .28, .3, .28, 0, -360), arc(.2, .28, .45, .72, 0, 90)]] ]
+};
+
+function dist(p, q){ return Math.hypot(p.x - q.x, p.y - q.y); }
+
+// 何画かの線を、INK_N 個の点に並べなおして、大きさと位置をそろえる
+function cloud(strokes){
+  const pts = [];
+  strokes.forEach((s, id) => s.forEach(p => pts.push({ x: p.x, y: p.y, id })));
+  let L = 0;
+  for (let i = 1; i < pts.length; i++) if (pts[i].id === pts[i - 1].id) L += dist(pts[i - 1], pts[i]);
+  const I = L / (INK_N - 1), out = [{ x: pts[0].x, y: pts[0].y }];
+  let D = 0;
+  for (let i = 1; I > 0 && i < pts.length; i++){
+    if (pts[i].id !== pts[i - 1].id) continue;
+    const d = dist(pts[i - 1], pts[i]);
+    if (D + d >= I && d > 0){
+      const t = (I - D) / d;
+      const q = { x: pts[i - 1].x + t * (pts[i].x - pts[i - 1].x), y: pts[i - 1].y + t * (pts[i].y - pts[i - 1].y), id: pts[i].id };
+      out.push(q);
+      pts.splice(i, 0, q);
+      D = 0;
+    } else D += d;
+  }
+  const last = pts[pts.length - 1];
+  while (out.length < INK_N) out.push({ x: last.x, y: last.y });
+  out.length = INK_N;
+
+  const xs = out.map(p => p.x), ys = out.map(p => p.y);
+  const minX = Math.min(...xs), minY = Math.min(...ys);
+  const size = Math.max(Math.max(...xs) - minX, Math.max(...ys) - minY) || 1;
+  out.forEach(p => { p.x = (p.x - minX) / size; p.y = (p.y - minY) / size; });
+  const cx = out.reduce((s, p) => s + p.x, 0) / INK_N, cy = out.reduce((s, p) => s + p.y, 0) / INK_N;
+  return out.map(p => ({ x: p.x - cx, y: p.y - cy }));
+}
+
+function cloudDist(a, b, start, stop){
+  const used = new Array(INK_N).fill(false);
+  let sum = 0, i = start;
+  do {
+    let min = Infinity, idx = 0;
+    for (let j = 0; j < INK_N; j++){
+      if (used[j]) continue;
+      const d = dist(a[i], b[j]);
+      if (d < min){ min = d; idx = j; }
+    }
+    used[idx] = true;
+    sum += (1 - ((i - start + INK_N) % INK_N) / INK_N) * min;
+    if (sum >= stop) return sum;
+    i = (i + 1) % INK_N;
+  } while (i !== start);
+  return sum;
+}
+function cloudDistance(a, b, stop){
+  let best = stop;
+  for (let i = 0; i < INK_N; i += Math.floor(Math.sqrt(INK_N))){
+    best = Math.min(best, cloudDist(a, b, i, best), cloudDist(b, a, i, best));
+  }
+  return best;
+}
+
+// 覚えた形（localStorage が使えないときも、開いている間は覚えておく）
+let learned = null;
+function getLearned(){
+  if (!learned){
+    try { learned = JSON.parse(localStorage.getItem(INK_KEY)) || {}; } catch (e) { learned = {}; }
+  }
+  return learned;
+}
+let templates = null;
+function getTemplates(){
+  if (templates) return templates;
+  templates = [];
+  for (const label in SHAPES){
+    SHAPES[label].forEach(v => templates.push({ label, pts: cloud(v.map(pieces => [].concat(...pieces))) }));
+  }
+  const l = getLearned();
+  for (const label in l){
+    l[label].forEach(pts => templates.push({ label, pts: pts.map(([x, y]) => ({ x, y })) }));
+  }
+  return templates;
+}
+// 読みまちがえた字の形を覚える（数字ごとに新しい5個まで）
+function learn(label, pts){
+  const l = getLearned();
+  l[label] = (l[label] || []).concat([pts.map(p => [+p.x.toFixed(3), +p.y.toFixed(3)])]).slice(-5);
+  try { localStorage.setItem(INK_KEY, JSON.stringify(l)); } catch (e) {}
+  templates = null;
+}
+
+function classify(strokes){
+  const pts = cloud(strokes);
+  let best = '?', bestD = INK_LIMIT;
+  for (const t of getTemplates()){
+    const d = cloudDistance(pts, t.pts, bestD);
+    if (d < bestD){ bestD = d; best = t.label; }
+  }
+  return { label: best, pts };
+}
+
+// 答えの欄の線を、左から1文字ずつに分けて読む
+function readInk(strokes, boxH){
+  const items = strokes.map(pts => {
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+    return { pts, minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
+  }).sort((p, q) => p.minX - q.minX);
+
+  // たての位置が重なる線は、同じ字（「4」「5」の2画目など）
+  const groups = [];
+  for (const it of items){
+    const cx = (it.minX + it.maxX) / 2;
+    const g = groups.find(g => {
+      const gx = (g.minX + g.maxX) / 2;
+      return (cx >= g.minX - 3 && cx <= g.maxX + 3) || (gx >= it.minX - 3 && gx <= it.maxX + 3);
+    });
+    if (g){
+      g.strokes.push(it.pts);
+      g.minX = Math.min(g.minX, it.minX); g.maxX = Math.max(g.maxX, it.maxX);
+      g.minY = Math.min(g.minY, it.minY); g.maxY = Math.max(g.maxY, it.maxY);
+    } else {
+      groups.push({ strokes: [it.pts], minX: it.minX, maxX: it.maxX, minY: it.minY, maxY: it.maxY });
+    }
+  }
+
+  const ref = Math.max(boxH * 0.3, ...groups.map(g => g.maxY - g.minY));
+  const out = [];
+  groups.forEach(g => {
+    const w = g.maxX - g.minX, h = g.maxY - g.minY;
+    if (Math.max(w, h) < ref * 0.12) return;                                  // ペン先がふれただけの点
+    if (w > h * 2 && h < ref * 0.3){                                          // 横線は「−」
+      out.push({ label: out.length === 0 ? '-' : '?', pts: null });
+    } else if (g.strokes.length === 1 && w < h * 0.25 && h > ref * 0.4){      // たての細い線は「1」
+      out.push({ label: '1', pts: cloud(g.strokes) });
+    } else {
+      out.push(classify(g.strokes));
+    }
+  });
+  return { text: out.map(o => o.label).join(''), groups: out };
+}
+
+/* ============================================================
+   3. 手書きの線をかく（計算スペース・答えの欄）
+   ============================================================ */
+let lastPen = 0;   // Apple Pencil を最後に使った時刻（手のひらがふれても線をかかないため）
+let inks = [];
+
+function createInk(wrap, opt){
+  const canvas = document.createElement('canvas');
+  wrap.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const ink = { strokes: [], tool: 'pen' };
+  let cur = null;
+
+  function style(){
+    ctx.strokeStyle = opt.color; ctx.lineWidth = opt.width;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  }
+  function redraw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    style();
+    for (const s of ink.strokes){
+      ctx.beginPath();
+      ctx.moveTo(s[0].x, s[0].y);
+      if (s.length === 1) ctx.lineTo(s[0].x + 0.1, s[0].y);
+      for (let i = 1; i < s.length; i++) ctx.lineTo(s[i].x, s[i].y);
+      ctx.stroke();
+    }
+  }
+  function resize(){
+    const r = wrap.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.round(r.width * dpr));
+    canvas.height = Math.max(1, Math.round(r.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    redraw();
+  }
+  function at(e){
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  function erase(p){
+    const n = ink.strokes.length;
+    ink.strokes = ink.strokes.filter(s => !s.some(q => dist(p, q) < 14));
+    if (ink.strokes.length !== n){ cur.changed = true; redraw(); }
+  }
+  function changed(){ if (opt.onChange) opt.onChange(); }
+
+  canvas.addEventListener('pointerdown', e => {
+    if (opt.locked && opt.locked()) return;
+    if (e.pointerType === 'pen'){
+      lastPen = Date.now();
+      if (cur && cur.type !== 'pen'){             // 先にふれた手のひらの線は取り消す
+        const i = ink.strokes.indexOf(cur.s);
+        if (i >= 0) ink.strokes.splice(i, 1);
+        cur = null;
+        redraw();
+      }
+    } else if (e.pointerType === 'touch' && Date.now() - lastPen < 5000) {
+      return;                                     // ペンを使っている間は、指や手のひらを無視
+    }
+    if (cur) return;
+    e.preventDefault();
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    const p = at(e);
+    cur = { id: e.pointerId, type: e.pointerType };
+    if (ink.tool === 'eraser') erase(p);
+    else { cur.s = [p]; ink.strokes.push(cur.s); redraw(); }
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!cur || e.pointerId !== cur.id) return;
+    if (cur.type === 'pen') lastPen = Date.now();
+    const evs = (e.getCoalescedEvents && e.getCoalescedEvents()) || [];
+    for (const ev of evs.length ? evs : [e]){
+      const p = at(ev);
+      if (!cur.s){ erase(p); continue; }
+      const last = cur.s[cur.s.length - 1];
+      if (dist(p, last) < 1) continue;
+      cur.s.push(p);
+      style();
+      ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    }
+  });
+  const end = e => {
+    if (!cur || e.pointerId !== cur.id) return;
+    const done = cur;
+    cur = null;
+    if (done.s || done.changed) changed();
+  };
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointercancel', end);
+  // 長押ししたときに、拡大鏡や文字選択が出ないようにする
+  canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+
+  ink.clear = () => { ink.strokes = []; redraw(); changed(); };
+  ink.undo = () => { if (ink.strokes.length){ ink.strokes.pop(); redraw(); changed(); } };
+  ink.setTool = t => { ink.tool = t; };
+
+  const ro = window.ResizeObserver ? new ResizeObserver(resize) : null;
+  if (ro) ro.observe(wrap); else window.addEventListener('resize', resize);
+  ink.destroy = () => { if (ro) ro.disconnect(); else window.removeEventListener('resize', resize); };
+  resize();
+  inks.push(ink);
+  return ink;
+}
+
+/* ============================================================
+   4. 画面の状態
    ============================================================ */
 const app = document.getElementById('app');
-const state = { unit:null, total:10, qs:[], i:0, input:'', locked:false, results:[], t0:0 };
+const state = { unit:null, total:10, qs:[], i:0, input:'', read:null, locked:false, results:[], t0:0 };
+let workInk = null, ansInk = null, readTimer = null, nextTimer = null;
 
 function fmtTime(ms){
   const s = Math.round(ms / 1000);
   return Math.floor(s / 60) + '分' + String(s % 60).padStart(2, '0') + '秒';
 }
 
+// 画面を切りかえる前に、手書きの後かたづけをする
+function resetScreen(className){
+  inks.forEach(i => i.destroy());
+  inks = [];
+  clearTimeout(readTimer);
+  clearTimeout(nextTimer);
+  readTimer = nextTimer = null;
+  app.className = className;
+}
+
+/* ---- とき方の表示 ---- */
+function mathLines(m){
+  // 長い式は「＝」のところで改行する
+  return [].concat(m).flatMap(s => s.length <= 22 ? [s] : s.split(' ＝ ').map((p, i) => (i ? '＝ ' : '') + p));
+}
+function stepsHTML(q){
+  return '<ol class="steps">' + q.steps.map(s => `
+    <li>
+      ${s.say ? `<p>${s.say}</p>` : ''}
+      ${s.math ? `<div class="m num">${mathLines(s.math).map(l => `<span>${l}</span>`).join('')}</div>` : ''}
+    </li>`).join('') + '</ol>';
+}
+function hintFor(q, mine){
+  if (q.answer !== 0 && mine === -q.answer){
+    return '数字は合っていますが、<b>符号（＋ と −）が反対</b>になっています。どこで符号が決まるか、下のとき方でたしかめよう。';
+  }
+  return '計算スペースに書いた式と、下のとき方を1行ずつくらべて、どこがちがうか見つけよう。';
+}
+function explainHTML(q, mine){
+  const pre = q.prefix ? q.prefix + ' ' : '';
+  return `
+    <div class="ex-top">
+      <span class="mine">きみの答え<b class="num">${pre}${numText(mine)}</b></span>
+      <span class="correct">正しい答え<b class="num">${pre}${numText(q.answer)}</b></span>
+    </div>
+    <p class="hint">${hintFor(q, mine)}</p>
+    <h3>とき方</h3>
+    ${stepsHTML(q)}`;
+}
+
 /* ---- トップ画面 ---- */
 function screenHome(){
+  resetScreen('');
   app.innerHTML = `
     <p class="title">中1数学ドリル</p>
-    <p class="lead">単元をえらぶと、毎回ちがう問題が自動で出ます。<br>答えはぜんぶ整数です。</p>
+    <p class="lead">単元をえらぶと、毎回ちがう問題が自動で出ます。答えはぜんぶ整数です。<br>計算スペースと答えの欄には、Apple Pencil や指で書けます。</p>
     <div class="menu">
       ${UNITS.map(u => `
         <button class="unit" data-unit="${u.id}">
@@ -334,6 +887,7 @@ function startQuiz(questions){
   state.qs = questions;
   state.i = 0;
   state.input = '';
+  state.read = null;
   state.locked = false;
   state.results = [];
   state.t0 = Date.now();
@@ -341,6 +895,7 @@ function startQuiz(questions){
 }
 
 function screenQuiz(){
+  resetScreen('is-quiz');
   const q = state.qs[state.i];
   app.innerHTML = `
     <div class="bar">
@@ -348,25 +903,84 @@ function screenQuiz(){
       <button class="quit">やめる</button>
     </div>
     <div class="track"><i style="width:${(state.i / state.qs.length) * 100}%"></i></div>
-    <div class="stage">
-      <div class="q num">${q.text}</div>
-      <div class="slot num" id="slot">
-        ${q.prefix ? `<span class="pre">${q.prefix}</span>` : ''}
-        <span class="val" id="val">0</span>
-      </div>
-      <div class="verdict" id="verdict"></div>
-    </div>
-    <div class="pad">
-      ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="num" data-k="${n}">${n}</button>`).join('')}
-      <button class="num" data-k="-">−</button>
-      <button class="num" data-k="0">0</button>
-      <button data-k="del">⌫</button>
-    </div>
-    <button class="go" id="go" disabled>答える</button>`;
+    <div class="main">
+      <section class="left">
+        <div class="q num">${q.text}</div>
+        <div class="work card">
+          <div class="head">
+            <span>計算スペース</span>
+            <span class="tools">
+              <button data-tool="pen" aria-pressed="true">ペン</button>
+              <button data-tool="eraser" aria-pressed="false">消しゴム</button>
+              <button data-work="undo">もどす</button>
+              <button data-work="clear">全部けす</button>
+            </span>
+          </div>
+          <div class="ink" id="work"></div>
+        </div>
+      </section>
+      <section class="right" id="right">
+        <div class="answer" id="answer">
+          <div class="head">
+            <span>答えを書こう（キーでも入力できます）</span>
+            <span class="tools">
+              <button data-ans="undo">もどす</button>
+              <button data-ans="clear">けす</button>
+            </span>
+          </div>
+          <div class="ans-row">
+            ${q.prefix ? `<span class="pre num">${q.prefix}</span>` : ''}
+            <div class="ink ans card" id="ans"><span class="ph" id="ph">ここに数字を書く</span></div>
+          </div>
+          <div class="read" id="slot">
+            <span class="label" id="readLabel">きみの答え</span>
+            <span class="val num" id="val"></span>
+          </div>
+          <div class="keys">
+            ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="num" data-k="${n}">${n}</button>`).join('')}
+            <button class="num" data-k="-">−</button>
+            <button class="num" data-k="0">0</button>
+            <button data-k="del">⌫</button>
+          </div>
+        </div>
+        <div class="explain" id="explain" hidden></div>
+        <button class="go" id="go" disabled>答え合わせ</button>
+      </section>
+    </div>`;
+
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--white').trim();
+  workInk = createInk(document.getElementById('work'), { color, width: 2.5 });
+  ansInk = createInk(document.getElementById('ans'), {
+    color, width: 5,
+    locked: () => state.locked,
+    onChange: () => {
+      clearTimeout(readTimer);
+      readTimer = setTimeout(readAnswer, 350);
+      draw();
+    }
+  });
 
   app.querySelector('.quit').onclick = screenHome;
+  app.querySelectorAll('[data-tool]').forEach(b => b.onclick = () => {
+    workInk.setTool(b.dataset.tool);
+    app.querySelectorAll('[data-tool]').forEach(t => t.setAttribute('aria-pressed', t === b));
+  });
+  app.querySelector('[data-work="undo"]').onclick = () => workInk.undo();
+  app.querySelector('[data-work="clear"]').onclick = () => workInk.clear();
+  app.querySelector('[data-ans="undo"]').onclick = () => { if (!state.locked) ansInk.undo(); };
+  app.querySelector('[data-ans="clear"]').onclick = () => { if (!state.locked) ansInk.clear(); };
   app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => press(b.dataset.k));
   document.getElementById('go').onclick = submit;
+  draw();
+}
+
+// 答えの欄に書いた数字を読みとる
+function readAnswer(){
+  clearTimeout(readTimer);
+  readTimer = null;
+  if (!ansInk || state.locked) return;
+  state.read = ansInk.strokes.length ? readInk(ansInk.strokes, document.getElementById('ans').clientHeight) : null;
+  state.input = state.read ? state.read.text : '';
   draw();
 }
 
@@ -380,31 +994,50 @@ function press(k){
 
 function draw(){
   const val = document.getElementById('val');
-  const go = document.getElementById('go');
-  val.textContent = state.input === '' ? '0' : state.input.replace('-', '−');
-  val.style.color = state.input === '' ? 'var(--dim)' : '';
-  go.disabled = !/^-?\d+$/.test(state.input);
+  if (!val) return;
+  const unreadable = state.input.includes('?');
+  val.textContent = state.input === '' ? '—' : state.input.replace('-', '−').replace(/\?/g, '？');
+  val.classList.toggle('empty', state.input === '');
+  document.getElementById('readLabel').textContent = unreadable ? '読みとれない字があります。書きなおすか、キーで直してね' : 'きみの答え';
+  document.getElementById('go').disabled = !/^-?\d+$/.test(state.input);
+  document.getElementById('ph').hidden = ansInk.strokes.length > 0;
+}
+
+// 読みまちがえた1文字をキーで直したときは、その字の形を覚える
+function learnFromFix(){
+  const r = state.read;
+  if (!r || r.text === state.input || r.text.length !== state.input.length) return;
+  const diff = [...state.input].map((ch, i) => ch !== r.text[i] ? i : -1).filter(i => i >= 0);
+  if (diff.length !== 1) return;
+  const i = diff[0], ch = state.input[i];
+  if (/\d/.test(ch) && r.groups[i].pts) learn(ch, r.groups[i].pts);
 }
 
 function submit(){
-  if (state.locked || !/^-?\d+$/.test(state.input)) return;
+  if (state.locked) return;
+  if (readTimer) readAnswer();
+  if (!/^-?\d+$/.test(state.input)) return;
+  learnFromFix();
   state.locked = true;
   const q = state.qs[state.i];
   const mine = Number(state.input);
   const ok = mine === q.answer;
   state.results.push({ q, mine, ok });
 
-  const slot = document.getElementById('slot');
-  const verdict = document.getElementById('verdict');
   const go = document.getElementById('go');
-  slot.classList.add(ok ? 'ok' : 'ng');
-  verdict.className = 'verdict ' + (ok ? 'ok' : 'ng');
-  verdict.innerHTML = ok ? '正解' : '正しい答えは <em class="num">' + numText(q.answer) + '</em>';
-
   if (ok){
-    go.textContent = '正解';
-    setTimeout(nextQuestion, 650);
+    document.getElementById('slot').classList.add('ok');
+    document.getElementById('readLabel').textContent = '正解！';
+    go.textContent = '正解！';
+    go.classList.add('ok');
+    go.disabled = true;
+    nextTimer = setTimeout(nextQuestion, 900);
   } else {
+    const ex = document.getElementById('explain');
+    ex.innerHTML = explainHTML(q, mine);
+    ex.hidden = false;
+    document.getElementById('answer').hidden = true;
+    document.getElementById('right').classList.add('explaining');
     go.textContent = 'つぎへ';
     go.classList.add('next');
     go.disabled = false;
@@ -415,6 +1048,7 @@ function submit(){
 function nextQuestion(){
   state.i++;
   state.input = '';
+  state.read = null;
   state.locked = false;
   if (state.i >= state.qs.length) screenResult();
   else screenQuiz();
@@ -422,6 +1056,7 @@ function nextQuestion(){
 
 /* ---- 結果画面 ---- */
 function screenResult(){
+  resetScreen('');
   const time = Date.now() - state.t0;
   const wrong = state.results.filter(r => !r.ok);
   const right = state.results.length - wrong.length;
@@ -432,11 +1067,14 @@ function screenResult(){
       <div class="sub">かかった時間 ${fmtTime(time)}　・　1問あたり ${(time / state.results.length / 1000).toFixed(1)}秒</div>
     </div>
     <div class="review">
-      ${wrong.length === 0 ? '<h2>全問正解です。</h2>' : '<h2>まちがえた問題</h2>' + wrong.map(r => `
-        <div class="row">
-          <span class="num">${r.q.text.replace(/<small>.*?<\/small>/, '')}</span>
-          <span class="mine">きみの答え ${numText(r.mine)}<b class="num">${r.q.prefix ? 'x ＝ ' : ''}${numText(r.q.answer)}</b></span>
-        </div>`).join('')}
+      ${wrong.length === 0 ? '<h2>全問正解です。</h2>' : '<h2>まちがえた問題（タップすると、とき方が見られます）</h2>' + wrong.map(r => `
+        <details class="row">
+          <summary>
+            <span class="num">${r.q.text}</span>
+            <span class="mine">きみの答え ${numText(r.mine)}<b class="num">${r.q.prefix ? 'x ＝ ' : ''}${numText(r.q.answer)}</b><span class="open">とき方 ▼</span></span>
+          </summary>
+          <div class="row-ex">${stepsHTML(r.q)}</div>
+        </details>`).join('')}
     </div>
     <div class="acts">
       ${wrong.length ? '<button id="again-wrong">まちがえた問題をもう一度</button>' : ''}
