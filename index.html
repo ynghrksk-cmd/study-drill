@@ -83,6 +83,13 @@
     letter-spacing:.01em;padding:2px 0;
   }
   .q small{display:block;font-size:.85rem;font-weight:400;color:var(--dim);margin-bottom:4px;letter-spacing:.02em;}
+  .q.word{text-align:left;font-size:1.05rem;font-weight:600;line-height:1.75;letter-spacing:.02em;padding:2px;}
+  .q.word .tag{
+    display:inline-block;margin-right:8px;padding:1px 9px;border-radius:999px;vertical-align:2px;
+    background:var(--gold);color:var(--ink);font-size:.72rem;font-weight:700;letter-spacing:0;
+  }
+  .ans-row .suf{font-size:1.2rem;font-weight:700;color:var(--dim);flex:none;}
+  .nw{white-space:nowrap;}
   .card{background:var(--paper);border:1px solid var(--line);border-radius:12px;}
   .work{flex:1;min-height:150px;display:flex;flex-direction:column;overflow:hidden;}
   .head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.78rem;color:var(--dim);}
@@ -160,6 +167,7 @@
   }
   .row summary::-webkit-details-marker{display:none;}
   .row summary small{display:block;font-size:.75rem;font-weight:400;color:var(--dim);}
+  .row summary .wq{font-size:.88rem;line-height:1.6;}
   .row .mine{font-size:.8rem;color:var(--dim);text-align:right;line-height:1.5;flex:none;}
   .row .mine b{display:block;color:var(--ok);font-size:1rem;font-weight:700;}
   .row .open{display:block;color:var(--gold);font-size:.72rem;}
@@ -190,6 +198,10 @@
     .left{gap:12px;}
     .q{font-size:2.8rem;}
     .q small{font-size:1.05rem;}
+    .q.word{font-size:1.3rem;}
+    .q.word .tag{font-size:.82rem;}
+    .ans-row .suf{font-size:1.5rem;}
+    .row summary .wq{font-size:1rem;}
     .head{font-size:.9rem;}
     .tools{gap:8px;}
     .tools button{padding:8px 16px;font-size:.88rem;}
@@ -356,6 +368,7 @@ function moveSay(n){
 
 // --- 単元1：正負の数（たし算・ひき算）---
 function genAddSub(){
+  if (Math.random() < WORD_RATE) return wordAddSub();
   if (Math.random() < 0.3){
     const a = rndNz(-12, 12), b = rndNz(-12, 12), c = rndNz(-9, 9);
     const o1 = pick(['+','-']), o2 = pick(['+','-']);
@@ -371,6 +384,7 @@ function genAddSub(){
 
 // --- 単元2：正負の数（かけ算・わり算・四則）---
 function genMulDiv(){
+  if (Math.random() < WORD_RATE) return wordMulDiv();
   const kind = pick(['mul','div','pow','mix','mix']);
   if (kind === 'mul'){
     const a = rndNz(-12, 12), b = rndNz(-9, 9);
@@ -424,6 +438,7 @@ function genMulDiv(){
 
 // --- 単元3：文字と式（式の値）---
 function genExprValue(){
+  if (Math.random() < WORD_RATE) return wordExpr();
   const x = rndNz(-6, 6);
   const kind = pick(['linear','linear','square','double']);
   const cond = '<small>x ＝ ' + numText(x) + ' のとき</small>';
@@ -463,6 +478,7 @@ function genExprValue(){
 
 // --- 単元4：一次方程式 ---
 function genEquation(){
+  if (Math.random() < WORD_RATE) return wordEquation();
   const x = rnd(-8, 8);
   const kind = pick(['basic','basic','both','paren']);
   const X = parenN(x);
@@ -498,6 +514,192 @@ function genEquation(){
     { say: `たしかめ：元の式の x に ${numText(x)} を入れると、左の辺が右の辺と同じ ${numText(r)} になります。`,
       math: `${numText(a)} × (${numText(x)}${tail(b)}) ＝ ${numText(a)} × ${parenN(x + b)} ＝ ${numText(r)}` }
   ]};
+}
+
+/* ---- 文章問題 ---- */
+const WORD_RATE = 0.25;   // それぞれの単元で、文章問題が出る割合
+
+// 文章の中の「＋7」「−5」（＋ と数字のあいだで改行しないようにする）
+function plusText(n){ return '<span class="nw">' + (n > 0 ? '＋' + n : numText(n)) + '</span>'; }
+function answerStep(s){ return { say: '<b>答え</b>　' + s }; }
+
+// 単元1：正負の数（たし算・ひき算）
+function wordAddSub(){
+  const kind = pick(['temp', 'diff', 'game']);
+  if (kind === 'temp'){
+    const a = rndNz(-8, 12), d = rnd(2, 12);
+    if (Math.random() < 0.5){
+      const expr = `${signed(a)} ＋ ${signed(d)}`;
+      return { word: true, suffix: '℃', answer: a + d,
+        text: `朝の気温は ${numText(a)}℃ でした。昼までに ${d}℃ 上がりました。昼の気温は何℃ですか。`,
+        steps: [
+          { say: '「上がる」は ＋ で表します。<b>朝の気温 ＋ 上がった分</b> の式を作ります。', math: expr },
+          ...explainAdd(a, d),
+          answerStep(`昼の気温は ${numText(a + d)}℃`)
+        ] };
+    }
+    const expr = `${signed(a)} － ${signed(d)}`;
+    return { word: true, suffix: '℃', answer: a - d,
+      text: `昼の気温は ${numText(a)}℃ でした。夜までに ${d}℃ 下がりました。夜の気温は何℃ですか。`,
+      steps: [
+        { say: '「下がる」は − で表します。<b>昼の気温 － 下がった分</b> の式を作ります。', math: expr },
+        toAddStep(expr, [a, -d]),
+        ...explainAdd(a, -d),
+        answerStep(`夜の気温は ${numText(a - d)}℃`)
+      ] };
+  }
+  if (kind === 'diff'){
+    let p, q;
+    do { p = rndNz(-9, 15); q = rndNz(-15, 9); } while (p <= q);
+    const expr = `${signed(p)} － ${signed(q)}`;
+    return { word: true, suffix: '点', answer: p - q,
+      text: `テストの得点を、平均点との差で表します。A さんは ${plusText(p)} 点、B さんは ${plusText(q)} 点でした。A さんは B さんより何点高いですか。`,
+      steps: [
+        { say: '「何点高いか」は、<b>A さんの差 － B さんの差</b> で求めます。', math: expr },
+        toAddStep(expr, [p, -q]),
+        ...explainAdd(p, -q),
+        answerStep(`A さんは B さんより ${p - q} 点高い`)
+      ] };
+  }
+  const terms = [rndNz(-12, 12), rndNz(-12, 12), rndNz(-12, 12)];
+  const sum = terms[0] + terms[1] + terms[2];
+  return { word: true, suffix: '点', answer: sum,
+    text: `ゲームで、1回目は ${plusText(terms[0])} 点、2回目は ${plusText(terms[1])} 点、3回目は ${plusText(terms[2])} 点でした。3回の合計は何点ですか。`,
+    steps: [
+      { say: '合計は、<b>3回の点数をぜんぶたします</b>。', math: terms.map(signed).join(' ＋ ') },
+      ...explainSum('', terms, false),
+      answerStep(`合計は ${numText(sum)} 点`)
+    ] };
+}
+
+// 単元2：正負の数（かけ算・わり算）
+function wordMulDiv(){
+  const kind = pick(['rate', 'average', 'quiz']);
+  if (kind === 'rate'){
+    const r = rnd(2, 5), h = rnd(2, 6), up = Math.random() < 0.5, after = Math.random() < 0.5;
+    const rate = up ? r : -r, t = after ? h : -h, when = `${h} 時間${after ? '後' : '前'}`;
+    const expr = `${signed(rate)} × ${signed(t)}`;
+    return { word: true, suffix: '℃', answer: rate * t,
+      text: `気温が 1 時間に ${r}℃ ずつ${up ? '上がって' : '下がって'}います。今の気温を 0℃ とすると、${when}の気温は何℃ですか。`,
+      steps: [
+        { say: `「上がる」を ＋、「下がる」を − で表すと、1 時間の変化は <b>${signed(rate)}℃</b> です。「後」を ＋、「前」を − で表すと、${when}は <b>${signed(t)} 時間</b> です。` },
+        { say: '<b>1 時間の変化 × 時間</b> で求めます。', math: expr },
+        ...explainMulDiv(expr, rate, t, '×', rate * t),
+        answerStep(`${when}の気温は ${numText(rate * t)}℃`)
+      ] };
+  }
+  if (kind === 'average'){
+    const base = pick([60, 65, 70, 75, 80]), n = pick([4, 5]), avg = rnd(-4, 4);
+    let diffs, last;
+    do {
+      diffs = Array.from({ length: n - 1 }, () => rndNz(-9, 9));
+      last = n * avg - diffs.reduce((s, d) => s + d, 0);
+    } while (last === 0 || Math.abs(last) > 9);
+    diffs.push(last);
+    const S = n * avg;
+    const pos = diffs.filter(d => d > 0).reduce((s, d) => s + d, 0), neg = diffs.filter(d => d < 0).reduce((s, d) => s + d, 0);
+    const sumLines = [diffs.map(signed).join(' ＋ ')];
+    if (pos && neg) sumLines.push(`＝ ${signed(pos)} ＋ ${signed(neg)}`);
+    sumLines.push(`＝ ${numText(S)}`);
+    return { word: true, suffix: '点', answer: base + avg,
+      text: `${n} 人のテストの得点を、${base} 点を基準にして、基準との差で表すと ${diffs.map(plusText).join('、')}（点）でした。${n} 人の平均点は何点ですか。`,
+      steps: [
+        { say: '先に、<b>基準との差の平均</b>を求めます。まず、差をぜんぶたします。正の数どうし、負の数どうしをまとめると計算しやすくなります。', math: sumLines },
+        S === 0
+          ? { say: `差の合計を人数の ${n} でわります。0 をどんな数でわっても 0 です。`, math: `0 ÷ ${n} ＝ 0` }
+          : { say: `差の合計を人数の ${n} でわると、差の平均になります。${signNote([S, n])}`, math: `${numText(S)} ÷ ${n} ＝ ${numText(avg)}` },
+        { say: `<b>基準の ${base} 点 ＋ 差の平均</b> が平均点です。`, math: `${base} ＋ ${avg ? signed(avg) : 0} ＝ ${base + avg}` },
+        answerStep(`平均点は ${base + avg} 点`)
+      ] };
+  }
+  const p = rnd(2, 5), m = rnd(1, 4), N = pick([8, 10, 12]), c = rnd(1, N - 1), w = N - c;
+  const good = p * c, bad = -m * w;
+  return { word: true, suffix: '点', answer: good + bad,
+    text: `クイズで、正解すると ＋${p} 点、まちがえると −${m} 点になります。${N} 問のうち ${c} 問正解しました。合計は何点ですか。`,
+    steps: [
+      { say: `まちがえた問題は、${N} － ${c} ＝ ${w}（問）です。` },
+      { say: '<b>1 問の点数 × 問題の数</b> で、正解の点数とまちがいの点数をそれぞれ求めます。まちがいは 負の数 × 正の数 なので − になります。', math: [`(＋${p}) × ${c} ＝ ${good}`, `(−${m}) × ${w} ＝ ${numText(bad)}`] },
+      { say: '2 つをたして、合計を出します。', math: `${good} ＋ ${signed(bad)}` },
+      ...explainAdd(good, bad),
+      answerStep(`合計は ${numText(good + bad)} 点`)
+    ] };
+}
+
+// 単元3：文字と式（式の値）
+function wordExpr(){
+  const kind = pick(['shop', 'sky', 'match']);
+  if (kind === 'shop'){
+    const a = pick([50, 60, 70, 80, 90, 100, 120]), b = pick([100, 120, 150, 180, 200]), x = rnd(2, 9);
+    return { word: true, suffix: '円', answer: a * x + b,
+      text: `1 本 ${a} 円のえんぴつを x 本と、${b} 円のノートを 1 冊買います。x ＝ ${x} のとき、代金は何円ですか。`,
+      steps: [
+        { say: `<b>代金 ＝ えんぴつの代金 ＋ ノートの代金</b> です。えんぴつ x 本の代金は「${a} × x」なので、代金は次の式で表せます。`, math: `${a}x ＋ ${b}（円）` },
+        { say: `x に ${x} を入れて計算します。<b>かけ算を先に</b>計算します。`, math: [`${a} × ${x} ＋ ${b}`, `＝ ${a * x} ＋ ${b}`, `＝ ${a * x + b}`] },
+        answerStep(`代金は ${a * x + b} 円`)
+      ] };
+  }
+  if (kind === 'sky'){
+    const g = rnd(12, 25), x = rnd(2, 6), v = g - 6 * x;
+    const steps = [
+      { say: `6x は「6 × x」のことです。x に ${x} を入れます。`, math: `${g} － 6x ＝ ${g} － 6 × ${x}` },
+      { say: '<b>かけ算を先に</b>計算します。', math: `${g} － 6 × ${x} ＝ ${g} － ${6 * x}` }
+    ];
+    if (v < 0) steps.push(toAddStep(`${g} － ${6 * x}`, [g, -6 * x]), ...explainAdd(g, -6 * x));
+    else steps.push({ say: 'ひき算をします。', math: `${g} － ${6 * x} ＝ ${v}` });
+    steps.push(answerStep(`気温は ${numText(v)}℃`));
+    return { word: true, suffix: '℃', answer: v, steps,
+      text: `地上の気温が ${g}℃ のとき、地上から x km の高さの気温は、およそ (${g} － 6x)℃ と表せます。x ＝ ${x} のとき、気温は何℃ですか。` };
+  }
+  const tri = Math.random() < 0.5, k = tri ? 2 : 3, x = rnd(4, 15), shape = tri ? '正三角形' : '正方形';
+  return { word: true, suffix: '本', answer: k * x + 1,
+    text: `マッチ棒で、${shape}を横に x 個つなげた形を作ります。使うマッチ棒の本数は (${k}x ＋ 1) 本と表せます。${shape}を ${x} 個つなげるとき、マッチ棒は何本いりますか。`,
+    steps: [
+      { say: `はじめの 1 本に、${shape}を 1 個ふやすごとに ${k} 本ずつ足していくので、<b>${k}x ＋ 1</b> と表せます。` },
+      { say: `${shape}を ${x} 個つなげるので、x に ${x} を入れます。<b>かけ算を先に</b>計算します。`, math: [`${k} × ${x} ＋ 1`, `＝ ${k * x} ＋ 1`, `＝ ${k * x + 1}`] },
+      answerStep(`マッチ棒は ${k * x + 1} 本`)
+    ] };
+}
+
+// 単元4：一次方程式
+function wordEquation(){
+  const kind = pick(['shop', 'age', 'candy']);
+  if (kind === 'shop'){
+    const f = pick(['りんご', 'なし', 'もも']), a = pick([80, 90, 100, 120, 130, 150]), b = pick([100, 150, 200, 250]);
+    const x = rnd(2, 9), T = a * x + b;
+    return { word: true, suffix: '個', answer: x,
+      text: `1 個 ${a} 円の${f}を何個かと、${b} 円のかごを 1 つ買ったら、代金は ${T} 円でした。${f}を何個買いましたか。`,
+      steps: [
+        { say: `買った${f}の個数を <b>x 個</b> として、代金を式で表すと、方程式ができます。`, math: `${a}x ＋ ${b} ＝ ${T}` },
+        { say: moveSay(b), math: [`${a}x ＝ ${T} － ${b}`, `${a}x ＝ ${T - b}`] },
+        ...divideStep(a, T - b, x),
+        answerStep(`${f}は ${x} 個（たしかめ：${a} × ${x} ＋ ${b} ＝ ${T} 円）`)
+      ] };
+  }
+  if (kind === 'age'){
+    let c, k, x, F;
+    do { c = rnd(6, 12); k = pick([2, 3]); x = rnd(2, 10); F = k * (c + x) - x; } while (F < 28 || F > 50 || F - c < 20);
+    const kc = k * c, right = kc - F;
+    return { word: true, suffix: '年後', answer: x,
+      text: `今、父は ${F} 才、子どもは ${c} 才です。父の年れいが子どもの年れいの ${k} 倍になるのは、今から何年後ですか。`,
+      steps: [
+        { say: '<b>x 年後</b> として考えます。x 年たつと、父も子どもも x 才ずつ年をとります。', math: [`父：${F} ＋ x（才）`, `子ども：${c} ＋ x（才）`] },
+        { say: `<b>父の年れい ＝ 子どもの年れい × ${k}</b> なので、方程式は次のようになります。`, math: `${F} ＋ x ＝ ${k}(${c} ＋ x)` },
+        { say: '<b>かっこをはずします</b>。かっこの前の数を、中のそれぞれにかけます。', math: `${F} ＋ x ＝ ${kc} ＋ ${k}x` },
+        { say: '<b>x の項は左の辺に、数の項は右の辺に</b>移項します。移項した項は符号が変わります。', math: [`x － ${k}x ＝ ${kc} － ${F}`, `${term(1 - k, 'x')} ＝ ${numText(right)}`] },
+        ...divideStep(1 - k, right, x),
+        answerStep(`${x} 年後（たしかめ：父は ${F + x} 才、子どもは ${c + x} 才で、${c + x} × ${k} ＝ ${F + x}）`)
+      ] };
+  }
+  const x = rnd(3, 9), a = rnd(2, 6), b = a + rnd(1, 3), gap = (b - a) * x, r1 = rnd(1, gap - 1), r2 = gap - r1;
+  return { word: true, suffix: '人', answer: x,
+    text: `あめを何人かの子どもに配ります。1 人に ${a} 個ずつ配ると ${r1} 個あまり、${b} 個ずつ配ると ${r2} 個足りません。子どもは何人ですか。`,
+    steps: [
+      { say: '子どもの人数を <b>x 人</b> として、あめの個数を 2 通りの式で表します。<b>あまるときは たす、足りないときは ひく</b>。', math: [`${a} 個ずつ：${a}x ＋ ${r1}（個）`, `${b} 個ずつ：${b}x － ${r2}（個）`] },
+      { say: 'あめの個数は同じなので、＝ でむすんで方程式にします。', math: `${a}x ＋ ${r1} ＝ ${b}x － ${r2}` },
+      { say: '<b>x の項は左の辺に、数の項は右の辺に</b>移項します。移項した項は符号が変わります。', math: [`${a}x － ${b}x ＝ −${r2} － ${r1}`, `${term(a - b, 'x')} ＝ ${numText(-gap)}`] },
+      ...divideStep(a - b, -gap, x),
+      answerStep(`${x} 人（たしかめ：あめは ${a} × ${x} ＋ ${r1} ＝ ${a * x + r1} 個、${b} × ${x} － ${r2} ＝ ${b * x - r2} 個で同じ）`)
+    ] };
 }
 
 const UNITS = [
@@ -879,12 +1081,15 @@ function hintFor(q, mine){
   }
   return '計算スペースに書いた式と、下のとき方を1行ずつくらべて、どこがちがうか見つけよう。';
 }
+// 「x ＝ 5」「5 個」のように、答えの前後の文字をつける
+function answerText(q, n){
+  return (q.prefix ? q.prefix + ' ' : '') + numText(n) + (q.suffix ? ' ' + q.suffix : '');
+}
 function explainHTML(q, mine){
-  const pre = q.prefix ? q.prefix + ' ' : '';
   return `
     <div class="ex-top">
-      <span class="mine">きみの答え<b class="num">${pre}${numText(mine)}</b></span>
-      <span class="correct">正しい答え<b class="num">${pre}${numText(q.answer)}</b></span>
+      <span class="mine">きみの答え<b class="num">${answerText(q, mine)}</b></span>
+      <span class="correct">正しい答え<b class="num">${answerText(q, q.answer)}</b></span>
     </div>
     <p class="hint">${hintFor(q, mine)}</p>
     <h3>とき方</h3>
@@ -896,7 +1101,7 @@ function screenHome(){
   resetScreen('');
   app.innerHTML = `
     <p class="title">中1数学ドリル</p>
-    <p class="lead">単元をえらぶと、毎回ちがう問題が自動で出ます。答えはぜんぶ整数です。<br>計算スペースと答えの欄には、Apple Pencil や指で書けます。</p>
+    <p class="lead">単元をえらぶと、毎回ちがう問題が自動で出ます。答えはぜんぶ整数です。文章問題もまざって出ます。<br>計算スペースと答えの欄には、Apple Pencil や指で書けます。</p>
     <div class="menu">
       ${UNITS.map(u => `
         <button class="unit" data-unit="${u.id}">
@@ -942,7 +1147,7 @@ function screenQuiz(){
     <div class="track"><i style="width:${(state.i / state.qs.length) * 100}%"></i></div>
     <div class="main">
       <section class="left">
-        <div class="q num">${q.text}</div>
+        <div class="q ${q.word ? 'word' : 'num'}">${q.word ? '<span class="tag">文章題</span>' : ''}${q.text}</div>
         <div class="work card">
           <div class="head">
             <span>計算スペース</span>
@@ -968,6 +1173,7 @@ function screenQuiz(){
           <div class="ans-row">
             ${q.prefix ? `<span class="pre num">${q.prefix}</span>` : ''}
             <div class="ink ans card" id="ans"><span class="ph" id="ph">ここに数字を書く</span></div>
+            ${q.suffix ? `<span class="suf">${q.suffix}</span>` : ''}
           </div>
           <div class="read" id="slot">
             <span class="label" id="readLabel">きみの答え</span>
@@ -1116,8 +1322,8 @@ function screenResult(){
       ${wrong.length === 0 ? '<h2>全問正解です。</h2>' : '<h2>まちがえた問題（タップすると、とき方が見られます）</h2>' + wrong.map(r => `
         <details class="row">
           <summary>
-            <span class="num">${r.q.text}</span>
-            <span class="mine">きみの答え ${numText(r.mine)}<b class="num">${r.q.prefix ? 'x ＝ ' : ''}${numText(r.q.answer)}</b><span class="open">とき方 ▼</span></span>
+            <span class="${r.q.word ? 'wq' : 'num'}">${r.q.text}</span>
+            <span class="mine">きみの答え ${answerText(r.q, r.mine)}<b class="num">${answerText(r.q, r.q.answer)}</b><span class="open">とき方 ▼</span></span>
           </summary>
           <div class="row-ex">${stepsHTML(r.q)}</div>
         </details>`).join('')}
