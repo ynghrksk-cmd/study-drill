@@ -452,7 +452,7 @@ function screenResult(){
 
 /* ---- パソコンのキーボードでも操作できるように ---- */
 document.addEventListener('keydown', e => {
-  if (!state.qs.length || state.i >= state.qs.length) return;
+  if (!document.getElementById('val')) return;   // 出題画面のときだけ受けつける
   if (e.key >= '0' && e.key <= '9') press(e.key);
   else if (e.key === '-') press('-');
   else if (e.key === 'Backspace') press('del');
