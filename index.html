@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>中1数学ドリル</title>
+<style>
+  :root{
+    --ink:#0E1F33;
+    --panel:#16304C;
+    --line:#27496E;
+    --white:#F5F8FB;
+    --dim:#8FA8C2;
+    --ok:#58C08A;
+    --ng:#F0705A;
+    --gold:#F4C34E;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--ink);
+    color:var(--white);
+    font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    display:flex;justify-content:center;
+    overscroll-behavior:none;
+  }
+  #app{
+    width:100%;max-width:480px;
+    padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;min-height:100%;
+  }
+  .num{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-variant-numeric:tabular-nums;
+  }
+  button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer;}
+  button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+
+  /* ---- トップ ---- */
+  .title{font-size:1.05rem;font-weight:700;letter-spacing:.04em;margin:8px 0 4px;}
+  .lead{color:var(--dim);font-size:.86rem;line-height:1.7;margin:0 0 22px;}
+  .menu{display:flex;flex-direction:column;gap:10px;}
+  .unit{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;text-align:left;display:flex;align-items:center;gap:14px;
+  }
+  .unit:active{background:#1C3A5C;}
+  .unit b{font-size:1rem;font-weight:700;display:block;}
+  .unit span{font-size:.78rem;color:var(--dim);display:block;margin-top:3px;}
+  .unit .mark{
+    width:34px;height:34px;flex:none;border-radius:8px;background:var(--line);
+    display:grid;place-items:center;font-size:1.1rem;color:var(--gold);
+  }
+  .count{
+    display:flex;align-items:center;gap:8px;margin:22px 0 6px;
+    font-size:.82rem;color:var(--dim);
+  }
+  .count button{
+    border:1px solid var(--line);border-radius:999px;padding:6px 14px;
+    font-size:.82rem;color:var(--dim);
+  }
+  .count button[aria-pressed="true"]{background:var(--white);color:var(--ink);border-color:var(--white);font-weight:700;}
+
+  /* ---- 出題 ---- */
+  .bar{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;color:var(--dim);}
+  .bar .quit{padding:4px 10px;border:1px solid var(--line);border-radius:999px;font-size:.75rem;}
+  .track{height:3px;background:var(--line);border-radius:2px;margin:12px 0 0;overflow:hidden;}
+  .track i{display:block;height:100%;background:var(--gold);width:0;transition:width .25s;}
+  .stage{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:26px 0;text-align:center;
+  }
+  .q{
+    font-size:clamp(2rem,9.5vw,3.1rem);font-weight:700;line-height:1.25;
+    letter-spacing:.01em;
+  }
+  .q small{display:block;font-size:.9rem;font-weight:400;color:var(--dim);margin-bottom:14px;letter-spacing:.02em;}
+  .slot{
+    margin-top:24px;display:flex;align-items:baseline;justify-content:center;gap:8px;
+    font-size:2.2rem;font-weight:700;min-height:3.4rem;
+  }
+  .slot .pre{font-size:1.6rem;color:var(--dim);}
+  .slot .val{
+    min-width:2.2ch;border-bottom:3px solid var(--line);padding:0 6px 4px;
+  }
+  .slot.ok .val{border-color:var(--ok);color:var(--ok);}
+  .slot.ng .val{border-color:var(--ng);color:var(--ng);}
+  .verdict{margin-top:14px;font-size:.95rem;min-height:1.6rem;font-weight:700;}
+  .verdict.ok{color:var(--ok);}
+  .verdict.ng{color:var(--ng);}
+  .verdict em{font-style:normal;color:var(--white);}
+
+  /* ---- テンキー ---- */
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+  .pad button{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    height:60px;font-size:1.5rem;font-weight:600;
+  }
+  .pad button:active{background:#1C3A5C;}
+  .go{
+    margin-top:9px;width:100%;height:58px;border-radius:12px;
+    background:var(--white);color:var(--ink);font-size:1.05rem;font-weight:700;
+  }
+  .go:disabled{opacity:.35;}
+  .go.next{background:var(--gold);}
+
+  /* ---- 結果 ---- */
+  .score{text-align:center;padding:30px 0 10px;}
+  .score .big{font-size:4.2rem;font-weight:700;line-height:1;}
+  .score .big u{text-decoration:none;font-size:1.6rem;color:var(--dim);}
+  .score .sub{color:var(--dim);font-size:.85rem;margin-top:10px;}
+  .review{margin:20px 0 6px;display:flex;flex-direction:column;gap:8px;}
+  .review h2{font-size:.82rem;color:var(--dim);font-weight:600;margin:0 0 2px;}
+  .row{
+    background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--ng);
+    border-radius:10px;padding:11px 14px;display:flex;justify-content:space-between;
+    align-items:center;gap:12px;font-size:1rem;
+  }
+  .row .mine{font-size:.8rem;color:var(--dim);text-align:right;line-height:1.5;}
+  .row .mine b{display:block;color:var(--ok);font-size:1rem;font-weight:700;}
+  .acts{margin-top:auto;padding-top:20px;display:flex;flex-direction:column;gap:9px;}
+  .acts button{
+    height:54px;border-radius:12px;font-size:.98rem;font-weight:700;
+    background:var(--white);color:var(--ink);
+  }
+  .acts button.ghost{background:none;border:1px solid var(--line);color:var(--white);font-weight:600;}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ============================================================
+   1. 問題を作る部分（ここを増やせば単元が増えます）
+   ============================================================ */
+
+// a以上b以下の整数をランダムに1つ返す
+function rnd(a, b){ return Math.floor(Math.random() * (b - a + 1)) + a; }
+// 0以外の整数
+function rndNz(a, b){ let n; do { n = rnd(a, b); } while (n === 0); return n; }
+// 配列からランダムに1つ
+function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+
+// 数を「(＋3)」「(−7)」の形にする
+function signed(n){ return '(' + (n < 0 ? '−' + Math.abs(n) : '＋' + n) + ')'; }
+// 式の途中の「＋5」「－5」
+function tail(n){ return (n < 0 ? ' － ' : ' ＋ ') + Math.abs(n); }
+// 「4x」「−x」「x」のような項
+function term(c, v){
+  if (c === 1) return v;
+  if (c === -1) return '−' + v;
+  return (c < 0 ? '−' : '') + Math.abs(c) + v;
+}
+
+// --- 単元1：正負の数（たし算・ひき算）---
+function genAddSub(){
+  if (Math.random() < 0.3){
+    const a = rndNz(-12, 12), b = rndNz(-12, 12), c = rndNz(-9, 9);
+    const o1 = pick(['+','-']), o2 = pick(['+','-']);
+    const ans = (o1 === '+' ? a + b : a - b) + (o2 === '+' ? c : -c);
+    return { text: signed(a) + (o1 === '+' ? ' ＋ ' : ' － ') + signed(b) + (o2 === '+' ? ' ＋ ' : ' － ') + signed(c), answer: ans };
+  }
+  const a = rndNz(-15, 15), b = rndNz(-15, 15), o = pick(['+','-']);
+  return { text: signed(a) + (o === '+' ? ' ＋ ' : ' － ') + signed(b), answer: o === '+' ? a + b : a - b };
+}
+
+// --- 単元2：正負の数（かけ算・わり算・四則）---
+function genMulDiv(){
+  const kind = pick(['mul','div','pow','mix','mix']);
+  if (kind === 'mul'){
+    const a = rndNz(-12, 12), b = rndNz(-9, 9);
+    return { text: signed(a) + ' × ' + signed(b), answer: a * b };
+  }
+  if (kind === 'div'){
+    const b = rndNz(-9, 9), q = rndNz(-9, 9);
+    return { text: signed(b * q) + ' ÷ ' + signed(b), answer: q };
+  }
+  if (kind === 'pow'){
+    const a = rndNz(-6, 6), n = pick([2, 2, 3]);
+    // 「(−3)²」と「−3²」の違いを両方出す
+    if (a < 0 && Math.random() < 0.5){
+      return { text: '−' + Math.abs(a) + (n === 2 ? '²' : '³'), answer: -Math.pow(Math.abs(a), n) };
+    }
+    return { text: '(' + (a < 0 ? '−' : '') + Math.abs(a) + ')' + (n === 2 ? '²' : '³'), answer: Math.pow(a, n) };
+  }
+  const a = rndNz(-10, 10), b = rndNz(-6, 6), c = rndNz(-6, 6);
+  if (Math.random() < 0.5){
+    return { text: a + ' ＋ ' + signed(b) + ' × ' + signed(c), answer: a + b * c };
+  }
+  const q = rndNz(-6, 6);
+  return { text: a + ' － ' + signed(b * q) + ' ÷ ' + signed(b), answer: a - q };
+}
+
+// --- 単元3：文字と式（式の値）---
+function genExprValue(){
+  const x = rndNz(-6, 6);
+  const kind = pick(['linear','linear','square','double']);
+  if (kind === 'linear'){
+    const a = rndNz(-7, 7), b = rndNz(-12, 12);
+    return { text: '<small>x ＝ ' + (x < 0 ? '−' + Math.abs(x) : x) + ' のとき</small>' + term(a, 'x') + tail(b), answer: a * x + b };
+  }
+  if (kind === 'square'){
+    const a = pick([1, 1, 2, -1, 3]), b = rndNz(-9, 9);
+    return { text: '<small>x ＝ ' + (x < 0 ? '−' + Math.abs(x) : x) + ' のとき</small>' + term(a, 'x²') + tail(b), answer: a * x * x + b };
+  }
+  const a = rndNz(-5, 5), b = rndNz(-6, 6), c = rndNz(-5, 5);
+  return { text: '<small>x ＝ ' + (x < 0 ? '−' + Math.abs(x) : x) + ' のとき</small>' + a + '(' + term(1, 'x') + tail(b) + ')' + tail(c), answer: a * (x + b) + c };
+}
+
+// --- 単元4：一次方程式 ---
+function genEquation(){
+  const x = rnd(-8, 8);
+  const kind = pick(['basic','basic','both','paren']);
+  if (kind === 'basic'){
+    const a = rndNz(-7, 7), b = rndNz(-12, 12);
+    return { text: term(a, 'x') + tail(b) + ' ＝ ' + (a * x + b), answer: x, prefix: 'x ＝' };
+  }
+  if (kind === 'both'){
+    let a = rndNz(-7, 7), c = rndNz(-7, 7);
+    while (a === c) c = rndNz(-7, 7);
+    const b = rndNz(-10, 10), d = a * x + b - c * x;
+    return { text: term(a, 'x') + tail(b) + ' ＝ ' + term(c, 'x') + tail(d), answer: x, prefix: 'x ＝' };
+  }
+  const a = rndNz(-5, 5), b = rndNz(-8, 8);
+  return { text: a + '(' + 'x' + tail(b) + ')' + ' ＝ ' + a * (x + b), answer: x, prefix: 'x ＝' };
+}
+
+const UNITS = [
+  { id:'addsub', mark:'±', name:'正負の数（たし算・ひき算）', hint:'(−7) ＋ (＋3) など', gen:genAddSub },
+  { id:'muldiv', mark:'×', name:'正負の数（かけ算・わり算）', hint:'累乗・四則の混じった式も', gen:genMulDiv },
+  { id:'expr',   mark:'x', name:'文字と式（式の値）',         hint:'x に数を代入して計算', gen:genExprValue },
+  { id:'eq',     mark:'＝', name:'一次方程式',                 hint:'x を求める（答えは整数）', gen:genEquation },
+  { id:'mix',    mark:'∞', name:'まぜこぜ',                   hint:'4つの単元からランダム', gen:null }
+];
+
+function makeQuestions(unitId, n){
+  const list = [];
+  const gens = unitId === 'mix' ? UNITS.filter(u => u.gen).map(u => u.gen) : [UNITS.find(u => u.id === unitId).gen];
+  const seen = new Set();
+  let guard = 0;
+  while (list.length < n && guard < n * 40){
+    guard++;
+    const q = pick(gens)();
+    if (seen.has(q.text)) continue;   // 同じ式が続かないように
+    seen.add(q.text);
+    list.push(q);
+  }
+  return list;
+}
+
+/* ============================================================
+   2. 画面の状態
+   ============================================================ */
+const app = document.getElementById('app');
+const state = { unit:null, total:10, qs:[], i:0, input:'', locked:false, results:[], t0:0 };
+
+function fmtTime(ms){
+  const s = Math.round(ms / 1000);
+  return Math.floor(s / 60) + '分' + String(s % 60).padStart(2, '0') + '秒';
+}
+
+/* ---- トップ画面 ---- */
+function screenHome(){
+  app.innerHTML = `
+    <p class="title">中1数学ドリル</p>
+    <p class="lead">単元をえらぶと、毎回ちがう問題が自動で出ます。<br>答えはぜんぶ整数です。</p>
+    <div class="menu">
+      ${UNITS.map(u => `
+        <button class="unit" data-unit="${u.id}">
+          <span class="mark num">${u.mark}</span>
+          <span><b>${u.name}</b><span>${u.hint}</span></span>
+        </button>`).join('')}
+    </div>
+    <div class="count">
+      <span>問題数</span>
+      ${[5, 10, 20].map(n => `<button data-n="${n}" aria-pressed="${state.total === n}">${n}問</button>`).join('')}
+    </div>`;
+
+  app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
+    state.total = Number(b.dataset.n);
+    screenHome();
+  });
+  app.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => {
+    state.unit = b.dataset.unit;
+    startQuiz(makeQuestions(state.unit, state.total));
+  });
+}
+
+/* ---- 出題画面 ---- */
+function startQuiz(questions){
+  state.qs = questions;
+  state.i = 0;
+  state.input = '';
+  state.locked = false;
+  state.results = [];
+  state.t0 = Date.now();
+  screenQuiz();
+}
+
+function screenQuiz(){
+  const q = state.qs[state.i];
+  app.innerHTML = `
+    <div class="bar">
+      <span class="num">${state.i + 1} / ${state.qs.length}</span>
+      <button class="quit">やめる</button>
+    </div>
+    <div class="track"><i style="width:${(state.i / state.qs.length) * 100}%"></i></div>
+    <div class="stage">
+      <div class="q num">${q.text}</div>
+      <div class="slot num" id="slot">
+        ${q.prefix ? `<span class="pre">${q.prefix}</span>` : ''}
+        <span class="val" id="val">0</span>
+      </div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+    <div class="pad">
+      ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="num" data-k="${n}">${n}</button>`).join('')}
+      <button class="num" data-k="-">−</button>
+      <button class="num" data-k="0">0</button>
+      <button data-k="del">⌫</button>
+    </div>
+    <button class="go" id="go" disabled>答える</button>`;
+
+  app.querySelector('.quit').onclick = screenHome;
+  app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => press(b.dataset.k));
+  document.getElementById('go').onclick = submit;
+  draw();
+}
+
+function press(k){
+  if (state.locked) return;
+  if (k === 'del') state.input = state.input.slice(0, -1);
+  else if (k === '-') state.input = state.input.startsWith('-') ? state.input.slice(1) : '-' + state.input;
+  else if (state.input.replace('-', '').length < 4) state.input += k;
+  draw();
+}
+
+function draw(){
+  const val = document.getElementById('val');
+  const go = document.getElementById('go');
+  val.textContent = state.input === '' || state.input === '-' ? (state.input || '0') : state.input;
+  val.style.color = state.input === '' ? 'var(--dim)' : '';
+  go.disabled = !/^-?\d+$/.test(state.input);
+}
+
+function submit(){
+  if (state.locked || !/^-?\d+$/.test(state.input)) return;
+  state.locked = true;
+  const q = state.qs[state.i];
+  const mine = Number(state.input);
+  const ok = mine === q.answer;
+  state.results.push({ q, mine, ok });
+
+  const slot = document.getElementById('slot');
+  const verdict = document.getElementById('verdict');
+  const go = document.getElementById('go');
+  slot.classList.add(ok ? 'ok' : 'ng');
+  verdict.className = 'verdict ' + (ok ? 'ok' : 'ng');
+  verdict.innerHTML = ok ? '正解' : '正しい答えは <em class="num">' + q.answer + '</em>';
+
+  if (ok){
+    go.textContent = '正解';
+    setTimeout(nextQuestion, 650);
+  } else {
+    go.textContent = 'つぎへ';
+    go.classList.add('next');
+    go.disabled = false;
+    go.onclick = nextQuestion;
+  }
+}
+
+function nextQuestion(){
+  state.i++;
+  state.input = '';
+  state.locked = false;
+  if (state.i >= state.qs.length) screenResult();
+  else screenQuiz();
+}
+
+/* ---- 結果画面 ---- */
+function screenResult(){
+  const time = Date.now() - state.t0;
+  const wrong = state.results.filter(r => !r.ok);
+  const right = state.results.length - wrong.length;
+
+  app.innerHTML = `
+    <div class="score">
+      <div class="big num">${right}<u> / ${state.results.length}</u></div>
+      <div class="sub">かかった時間 ${fmtTime(time)}　・　1問あたり ${(time / state.results.length / 1000).toFixed(1)}秒</div>
+    </div>
+    <div class="review">
+      ${wrong.length === 0 ? '<h2>全問正解です。</h2>' : '<h2>まちがえた問題</h2>' + wrong.map(r => `
+        <div class="row">
+          <span class="num">${r.q.text.replace(/<small>.*?<\/small>/, '')}</span>
+          <span class="mine">きみの答え ${r.mine}<b class="num">${r.q.prefix ? 'x ＝ ' : ''}${r.q.answer}</b></span>
+        </div>`).join('')}
+    </div>
+    <div class="acts">
+      ${wrong.length ? '<button id="again-wrong">まちがえた問題をもう一度</button>' : ''}
+      <button id="again" class="${wrong.length ? 'ghost' : ''}">同じ単元でもう一度</button>
+      <button id="home" class="ghost">単元をえらびなおす</button>
+    </div>`;
+
+  const w = document.getElementById('again-wrong');
+  if (w) w.onclick = () => startQuiz(wrong.map(r => r.q));
+  document.getElementById('again').onclick = () => startQuiz(makeQuestions(state.unit, state.total));
+  document.getElementById('home').onclick = screenHome;
+}
+
+/* ---- パソコンのキーボードでも操作できるように ---- */
+document.addEventListener('keydown', e => {
+  if (!state.qs.length || state.i >= state.qs.length) return;
+  if (e.key >= '0' && e.key <= '9') press(e.key);
+  else if (e.key === '-') press('-');
+  else if (e.key === 'Backspace') press('del');
+  else if (e.key === 'Enter'){
+    const go = document.getElementById('go');
+    if (go && !go.disabled) go.click();
+  }
+});
+
+screenHome();
+</script>
+</body>
+</html>
