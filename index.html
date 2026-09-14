@@ -4,30 +4,45 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F4F1EA">
 <title>中1数学ドリル</title>
 <style>
+  /* ============================================================
+     色の意味は固定する（毎回同じ意味で出てくると、見ただけでわかる）
+       正解＝青 / まちがい＝オレンジ / 大事なきまり＝蛍光ペンの黄色 / 次に押すボタン＝こい紺
+     赤と緑の組み合わせは使わない（色覚のタイプによって見分けにくいため）
+     ============================================================ */
   :root{
-    --ink:#0E1F33;
-    --panel:#16304C;
-    --paper:#10263D;
-    --line:#27496E;
-    --white:#F5F8FB;
-    --dim:#8FA8C2;
-    --ok:#58C08A;
-    --ng:#F0705A;
-    --gold:#F4C34E;
+    color-scheme:light;
+    --bg:#F4F1EA;        /* 紙のような、まぶしすぎない地の色 */
+    --surface:#FFFDF9;   /* カード */
+    --surface-2:#ECE7DC; /* キーの押した色など */
+    --line:#DAD3C5;
+    --grid:rgba(60,90,130,.09);
+    --ink:#1E2833;       /* 文字（地の色とのコントラスト 約13:1） */
+    --ink-2:#5A6472;     /* 補足の文字 */
+    --faint:#A39C8E;     /* 入力前の「—」など */
+    --pen:#22313F;       /* 手書きの線（えんぴつの色） */
+    --primary:#1E2833;   /* 次に押すボタン */
+    --ok:#2463A8;        /* 正解 */
+    --ok-soft:#E2ECF8;
+    --ng:#B8570E;        /* まちがい（赤を使わず、あせりをさそわない） */
+    --ng-soft:#FAEBDC;
+    --mark:#FFE27A;      /* 大事なきまり */
+    --focus:#2463A8;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   [hidden]{display:none!important;}
   html,body{height:100%;margin:0;}
   body{
-    background:var(--ink);
-    color:var(--white);
-    font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"BIZ UDPGothic","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",system-ui,sans-serif;
     display:flex;justify-content:center;
     overscroll-behavior:none;
     touch-action:manipulation;
+    -webkit-text-size-adjust:100%;
   }
   #app{
     width:100%;max-width:480px;
@@ -39,32 +54,41 @@
     font-variant-numeric:tabular-nums;
   }
   button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer;}
-  button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  button:focus-visible{outline:3px solid var(--focus);outline-offset:2px;}
 
   /* ---- トップ ---- */
-  .title{font-size:1.05rem;font-weight:700;letter-spacing:.04em;margin:8px 0 4px;}
-  .lead{color:var(--dim);font-size:.86rem;line-height:1.7;margin:0 0 22px;}
+  .title{font-size:1.3rem;font-weight:800;letter-spacing:.04em;margin:8px 0 6px;}
+  .lead{color:var(--ink-2);font-size:.9rem;line-height:1.8;margin:0 0 20px;}
   .menu{display:flex;flex-direction:column;gap:10px;}
   .unit{
-    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
     padding:16px 18px;text-align:left;display:flex;align-items:center;gap:14px;
+    box-shadow:0 1px 2px rgba(30,40,51,.05);
   }
-  .unit:active{background:#1C3A5C;}
-  .unit b{font-size:1rem;font-weight:700;display:block;}
-  .unit span{font-size:.78rem;color:var(--dim);display:block;margin-top:3px;}
+  .unit:active{background:var(--surface-2);}
+  .unit b{font-size:1.02rem;font-weight:700;display:block;}
+  .unit span{font-size:.8rem;color:var(--ink-2);display:block;margin-top:4px;line-height:1.5;}
   .unit .mark{
-    width:34px;height:34px;flex:none;border-radius:8px;background:var(--line);
-    display:grid;place-items:center;font-size:1.1rem;color:var(--gold);
+    width:40px;height:40px;flex:none;margin:0;border-radius:10px;background:var(--ok-soft);
+    display:grid;place-items:center;font-size:1.2rem;font-weight:700;color:var(--ok);
+  }
+  .unit .badge{
+    display:inline-block;margin:0 0 0 8px;padding:1px 8px;border-radius:999px;vertical-align:2px;
+    background:var(--mark);color:var(--ink);font-size:.7rem;font-weight:700;
   }
   .count{
     display:flex;align-items:center;gap:8px;margin:22px 0 6px;
-    font-size:.82rem;color:var(--dim);
+    font-size:.84rem;color:var(--ink-2);
   }
   .count button{
-    border:1px solid var(--line);border-radius:999px;padding:6px 14px;
-    font-size:.82rem;color:var(--dim);
+    border:1px solid var(--line);border-radius:999px;padding:7px 15px;
+    font-size:.84rem;color:var(--ink-2);background:var(--surface);
   }
-  .count button[aria-pressed="true"]{background:var(--white);color:var(--ink);border-color:var(--white);font-weight:700;}
+  .count button[aria-pressed="true"]{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:700;}
+  .tip{
+    margin:18px 0 0;padding:12px 14px;border-radius:12px;border:1px dashed var(--line);
+    background:var(--surface);color:var(--ink-2);font-size:.82rem;line-height:1.8;
+  }
 
   /* ---- 出題 ---- */
   #app.is-quiz{
@@ -72,162 +96,207 @@
     padding-top:14px;padding-bottom:calc(14px + env(safe-area-inset-bottom));
     -webkit-user-select:none;user-select:none;
   }
-  .bar{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;color:var(--dim);}
-  .bar .quit{padding:4px 10px;border:1px solid var(--line);border-radius:999px;font-size:.75rem;}
-  .track{height:3px;background:var(--line);border-radius:2px;margin:10px 0 0;overflow:hidden;flex:none;}
-  .track i{display:block;height:100%;background:var(--gold);width:0;transition:width .25s;}
+  .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:.82rem;color:var(--ink-2);}
+  .bar .quit{padding:5px 12px;border:1px solid var(--line);border-radius:999px;font-size:.78rem;color:var(--ink-2);background:var(--surface);}
+  /* 進み具合は1問ずつの区切りで見せる（ゴールが近づくほどやる気が出やすい） */
+  .dots{display:flex;gap:4px;margin-top:10px;flex:none;}
+  .dots i{flex:1;height:6px;border-radius:3px;background:var(--surface-2);transition:background .3s;}
+  .dots i.done{background:#A7AEB8;}
+  .dots i.now{background:var(--ink);}
   .main{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;margin-top:10px;}
   .left{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;}
+  /* 問題はカードにのせて、いちばん目がいくようにする */
   .q{
-    text-align:center;font-size:clamp(1.6rem,7vw,2.4rem);font-weight:700;line-height:1.25;
-    letter-spacing:.01em;padding:2px 0;
+    text-align:center;font-size:clamp(1.6rem,7vw,2.4rem);font-weight:700;line-height:1.3;
+    letter-spacing:.01em;padding:10px 14px;
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(30,40,51,.05);
   }
-  .q small{display:block;font-size:.85rem;font-weight:400;color:var(--dim);margin-bottom:4px;letter-spacing:.02em;}
-  .q.word{text-align:left;font-size:1.05rem;font-weight:600;line-height:1.75;letter-spacing:.02em;padding:2px;}
+  .q small{
+    display:block;font-size:.85rem;font-weight:500;color:var(--ink-2);margin-bottom:4px;letter-spacing:.02em;
+    font-family:"BIZ UDPGothic","Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+  }
+  .q.word{text-align:left;font-size:1.08rem;font-weight:500;line-height:1.9;letter-spacing:.03em;padding:12px 16px;}
   .q.word .tag{
     display:inline-block;margin-right:8px;padding:1px 9px;border-radius:999px;vertical-align:2px;
-    background:var(--gold);color:var(--ink);font-size:.72rem;font-weight:700;letter-spacing:0;
+    background:var(--surface-2);color:var(--ink-2);font-size:.72rem;font-weight:700;letter-spacing:0;
   }
-  .ans-row .suf{font-size:1.2rem;font-weight:700;color:var(--dim);flex:none;}
   .nw{white-space:nowrap;}
-  .card{background:var(--paper);border:1px solid var(--line);border-radius:12px;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;}
   .work{flex:1;min-height:150px;display:flex;flex-direction:column;overflow:hidden;}
-  .head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.78rem;color:var(--dim);}
+  .head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;color:var(--ink-2);}
   .work .head{padding:6px 6px 6px 12px;border-bottom:1px solid var(--line);}
   .tools{display:flex;gap:6px;}
-  .tools button{padding:6px 11px;border:1px solid var(--line);border-radius:999px;font-size:.75rem;color:var(--dim);}
-  .tools button[aria-pressed="true"]{background:var(--white);border-color:var(--white);color:var(--ink);font-weight:700;}
+  .tools button{padding:6px 12px;border:1px solid var(--line);border-radius:999px;font-size:.76rem;color:var(--ink-2);background:var(--surface);}
+  .tools button[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700;}
   .ink{position:relative;flex:1;min-height:0;touch-action:none;-webkit-touch-callout:none;}
   .ink canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+  /* 計算スペースは方眼（式の行や位がそろえやすい） */
+  .work .ink{
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:28px 28px;
+  }
 
   .right{flex:none;display:flex;flex-direction:column;gap:8px;min-height:0;}
   .answer{display:flex;flex-direction:column;gap:8px;}
   .ans-row{display:flex;align-items:center;gap:10px;}
-  .ans-row .pre{font-size:1.5rem;font-weight:700;color:var(--dim);flex:none;}
+  .ans-row .pre{font-size:1.5rem;font-weight:700;color:var(--ink-2);flex:none;}
+  .ans-row .suf{font-size:1.2rem;font-weight:700;color:var(--ink-2);flex:none;}
   .ans{flex:1;height:96px;}
-  .ans::after{content:'';position:absolute;left:16px;right:16px;bottom:22%;border-bottom:1px dashed var(--line);pointer-events:none;}
-  .ans .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--line);font-size:.9rem;pointer-events:none;}
+  .ans::after{content:'';position:absolute;left:16px;right:16px;bottom:22%;border-bottom:2px dashed var(--line);pointer-events:none;}
+  .ans .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--faint);font-size:.9rem;pointer-events:none;}
   .read{display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-height:2.6rem;padding:0 4px;}
-  .read .label{font-size:.8rem;color:var(--dim);}
+  .read .label{font-size:.82rem;color:var(--ink-2);}
   .read .val{font-size:2rem;font-weight:700;min-width:2.2ch;text-align:right;border-bottom:3px solid var(--line);padding:0 6px 2px;flex:none;}
-  .read .val.empty{color:var(--dim);}
+  .read .val.empty{color:var(--faint);}
   .read.ok .val{border-color:var(--ok);color:var(--ok);}
-  .read.ok .label{color:var(--ok);font-size:1.1rem;font-weight:700;}
+  .read.ok .label{color:var(--ok);font-size:1.05rem;font-weight:700;}
 
-  /* ---- テンキー ---- */
+  /* ---- テンキー（手書きの予備なので、目立ちすぎないように） ---- */
   .keys{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
   .keys button{
-    background:var(--panel);border:1px solid var(--line);border-radius:10px;
-    height:44px;font-size:1.25rem;font-weight:600;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    height:44px;font-size:1.25rem;font-weight:600;color:var(--ink);
   }
-  .keys button:active{background:#1C3A5C;}
+  .keys button:active{background:var(--surface-2);}
   .go{
-    flex:none;width:100%;height:54px;border-radius:12px;
-    background:var(--white);color:var(--ink);font-size:1.05rem;font-weight:700;
+    flex:none;width:100%;min-height:54px;padding:6px 14px;border-radius:14px;
+    background:var(--primary);color:#fff;font-size:1.05rem;font-weight:700;line-height:1.35;
   }
-  .go:disabled{opacity:.35;}
-  .go.ok{background:var(--ok);opacity:1;}
-  .go.next{background:var(--gold);}
+  .go:disabled{background:var(--surface-2);color:var(--faint);}
+  .go.ok{background:var(--ok);color:#fff;}
+  .go.step{background:var(--surface);color:var(--ink);box-shadow:inset 0 0 0 2px var(--primary);}
+  .go.next{background:var(--primary);color:#fff;}
 
   /* ---- 解説 ---- */
-  .right.explaining{flex:0 1 auto;max-height:62%;}
+  .right.explaining{flex:0 1 auto;max-height:64%;}
   .explain{
     flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
-    padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--ng);border-radius:12px;
+    padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--ng);border-radius:14px;
   }
   .ex-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 14px;}
-  .ex-top .mine{font-size:.85rem;color:var(--dim);}
-  .ex-top .mine b{color:var(--ng);font-size:1.1rem;margin-left:4px;}
+  .ex-top .mine{font-size:.85rem;color:var(--ink-2);}
+  .ex-top .mine b{color:var(--ng);font-size:1.15rem;margin-left:6px;}
   .ex-top .correct{font-size:.95rem;font-weight:700;}
-  .ex-top .correct b{color:var(--ok);font-size:1.5rem;margin-left:6px;}
-  .hint{margin:10px 0 0;padding:8px 12px;border-radius:8px;background:#1C3A5C;font-size:.85rem;line-height:1.6;}
-  .explain h3{font-size:.8rem;color:var(--dim);font-weight:600;margin:14px 0 8px;}
-  .steps{list-style:none;margin:0;padding:0;counter-reset:st;display:flex;flex-direction:column;gap:12px;}
-  .steps li{counter-increment:st;position:relative;padding-left:32px;}
+  .ex-top .correct b{color:var(--ok);font-size:1.6rem;margin-left:6px;}
+  .hint{margin:10px 0 0;padding:9px 12px;border-radius:10px;background:var(--ng-soft);font-size:.88rem;line-height:1.75;}
+  .hint b{font-weight:700;}
+  .ex-h{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;}
+  .ex-h h3{font-size:.82rem;color:var(--ink-2);font-weight:700;margin:0;}
+  .ex-h .all{font-size:.8rem;color:var(--ok);font-weight:600;padding:4px 6px;}
+  .steps{list-style:none;margin:0;padding:0;counter-reset:st;display:flex;flex-direction:column;gap:14px;}
+  .steps li{counter-increment:st;position:relative;padding-left:34px;animation:rise .25s ease-out;}
   .steps li::before{
-    content:counter(st);position:absolute;left:0;top:2px;width:22px;height:22px;border-radius:50%;
-    background:var(--line);color:var(--gold);font-size:.78rem;font-weight:700;display:grid;place-items:center;
+    content:counter(st);position:absolute;left:0;top:3px;width:24px;height:24px;border-radius:50%;
+    background:var(--primary);color:#fff;font-size:.8rem;font-weight:700;display:grid;place-items:center;
   }
-  .steps p{margin:0;font-size:.9rem;line-height:1.7;}
-  .steps b{color:var(--gold);font-weight:700;}
-  .steps .m{margin-top:4px;font-size:1.15rem;font-weight:600;line-height:1.6;}
+  .steps p{margin:0;font-size:.95rem;line-height:1.85;}
+  /* 大事なきまりは蛍光ペン（毎回同じ見た目にして、目に入りやすくする） */
+  .steps b{
+    font-weight:700;padding:0 2px;
+    background:linear-gradient(transparent 58%,var(--mark) 58%);
+    -webkit-box-decoration-break:clone;box-decoration-break:clone;
+  }
+  .steps .m{display:inline-block;margin-top:6px;padding:6px 12px;border-radius:8px;background:var(--bg);font-size:1.2rem;font-weight:600;line-height:1.65;}
   .steps .m span{display:block;}
+  /* 数直線の図 */
+  .fig{margin:8px 0 0;max-width:440px;}
+  .fig figcaption{font-size:.76rem;color:var(--ink-2);margin-bottom:2px;}
+  .nl{display:block;width:100%;height:auto;}
+  .nl .axis,.nl .tick{stroke:var(--ink-2);stroke-width:1.5;}
+  .nl .guide{stroke:var(--line);stroke-width:1.5;stroke-dasharray:4 3;}
+  .nl .a1{stroke:var(--ink);stroke-width:3;}
+  .nl .h1{fill:var(--ink);}
+  .nl .a2{stroke:var(--ok);stroke-width:3;}
+  .nl .h2{fill:var(--ok);}
+  .nl text{font-family:"Helvetica Neue",Arial,sans-serif;font-size:15px;text-anchor:middle;fill:var(--ink-2);}
+  .nl text.s1{fill:var(--ink);font-weight:700;}
+  .nl text.s2,.nl text.ans{fill:var(--ok);font-weight:700;}
+  @keyframes rise{from{opacity:0;transform:translateY(4px);}}
 
   /* ---- 結果 ---- */
-  .score{text-align:center;padding:30px 0 10px;}
-  .score .big{font-size:4.2rem;font-weight:700;line-height:1;}
-  .score .big u{text-decoration:none;font-size:1.6rem;color:var(--dim);}
-  .score .sub{color:var(--dim);font-size:.85rem;margin-top:10px;}
-  .review{margin:20px 0 6px;display:flex;flex-direction:column;gap:8px;}
-  .review h2{font-size:.82rem;color:var(--dim);font-weight:600;margin:0 0 2px;}
-  .row{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--ng);border-radius:10px;}
+  .score{text-align:center;padding:26px 0 6px;}
+  .score .big{font-size:4.2rem;font-weight:800;line-height:1;}
+  .score .big u{text-decoration:none;font-size:1.6rem;color:var(--ink-2);}
+  .score .msg{margin:14px auto 0;max-width:30em;font-size:.95rem;line-height:1.85;}
+  .score .sub{color:var(--ink-2);font-size:.8rem;margin-top:6px;}
+  .review{margin:18px 0 6px;display:flex;flex-direction:column;gap:8px;}
+  .review h2{font-size:.84rem;color:var(--ink-2);font-weight:700;margin:0 0 2px;}
+  .row{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--ng);border-radius:12px;}
   .row summary{
     list-style:none;cursor:pointer;padding:11px 14px;display:flex;justify-content:space-between;
     align-items:center;gap:12px;font-size:1rem;
   }
   .row summary::-webkit-details-marker{display:none;}
-  .row summary small{display:block;font-size:.75rem;font-weight:400;color:var(--dim);}
-  .row summary .wq{font-size:.88rem;line-height:1.6;}
-  .row .mine{font-size:.8rem;color:var(--dim);text-align:right;line-height:1.5;flex:none;}
-  .row .mine b{display:block;color:var(--ok);font-size:1rem;font-weight:700;}
-  .row .open{display:block;color:var(--gold);font-size:.72rem;}
+  .row summary small{display:block;font-size:.75rem;font-weight:400;color:var(--ink-2);}
+  .row summary .wq{font-size:.9rem;line-height:1.7;}
+  .row .mine{font-size:.8rem;color:var(--ink-2);text-align:right;line-height:1.5;flex:none;}
+  .row .mine b{display:block;color:var(--ok);font-size:1.05rem;font-weight:700;}
+  .row .open{display:block;color:var(--ok);font-size:.74rem;font-weight:600;}
   .row[open] .open{visibility:hidden;}
   .row-ex{padding:12px 14px 14px;border-top:1px solid var(--line);}
   .acts{margin-top:auto;padding-top:20px;display:flex;flex-direction:column;gap:9px;}
   .acts button{
-    height:54px;border-radius:12px;font-size:.98rem;font-weight:700;
-    background:var(--white);color:var(--ink);
+    height:54px;border-radius:14px;font-size:.98rem;font-weight:700;
+    background:var(--primary);color:#fff;
   }
-  .acts button.ghost{background:none;border:1px solid var(--line);color:var(--white);font-weight:600;}
+  .acts button.ghost{background:var(--surface);border:1px solid var(--line);color:var(--ink);font-weight:600;}
 
   /* ---- iPad などの大きい画面 ---- */
   @media (min-width:700px){
     #app{max-width:620px;padding:32px 28px calc(28px + env(safe-area-inset-bottom));}
     #app.is-quiz{max-width:780px;padding-top:18px;padding-bottom:calc(16px + env(safe-area-inset-bottom));}
-    .title{font-size:1.4rem;}
+    .title{font-size:1.6rem;}
     .lead{font-size:1rem;}
     .unit{padding:20px 22px;}
     .unit b{font-size:1.2rem;}
-    .unit span{font-size:.9rem;}
-    .unit .mark{width:44px;height:44px;font-size:1.4rem;}
+    .unit span{font-size:.92rem;}
+    .unit .mark{width:48px;height:48px;font-size:1.45rem;}
+    .unit .badge{font-size:.8rem;}
     .count,.count button{font-size:.95rem;}
     .count button{padding:10px 20px;}
+    .tip{font-size:.95rem;}
     .bar{font-size:.95rem;}
     .bar .quit{padding:8px 16px;font-size:.9rem;}
+    .dots i{height:8px;}
     .main{gap:12px;margin-top:12px;}
     .left{gap:12px;}
-    .q{font-size:2.8rem;}
+    .q{font-size:2.8rem;padding:14px 18px;}
     .q small{font-size:1.05rem;}
-    .q.word{font-size:1.3rem;}
+    .q.word{font-size:1.32rem;padding:16px 20px;}
     .q.word .tag{font-size:.82rem;}
-    .ans-row .suf{font-size:1.5rem;}
-    .row summary .wq{font-size:1rem;}
-    .head{font-size:.9rem;}
+    .head{font-size:.92rem;}
     .tools{gap:8px;}
-    .tools button{padding:8px 16px;font-size:.88rem;}
+    .tools button{padding:8px 16px;font-size:.9rem;}
+    .work .ink{background-size:32px 32px;}
     .ans{height:120px;}
     .ans-row .pre{font-size:2rem;}
-    .read .label{font-size:.9rem;}
+    .ans-row .suf{font-size:1.5rem;}
+    .read .label{font-size:.95rem;}
+    .read.ok .label{font-size:1.25rem;}
     .read .val{font-size:2.4rem;}
     .keys{grid-template-columns:repeat(12,1fr);gap:8px;}
     .keys button{height:54px;font-size:1.5rem;}
-    .go{height:62px;font-size:1.2rem;}
-    .explain{padding:18px 20px;}
+    .go{min-height:62px;font-size:1.2rem;}
+    .explain{padding:18px 22px;}
     .ex-top .mine{font-size:.95rem;}
     .ex-top .correct{font-size:1.05rem;}
-    .ex-top .correct b{font-size:1.8rem;}
-    .hint{font-size:.98rem;}
-    .explain h3{font-size:.9rem;}
-    .steps{gap:16px;}
-    .steps li{padding-left:36px;}
-    .steps li::before{width:26px;height:26px;font-size:.88rem;}
-    .steps p{font-size:1.02rem;}
-    .steps .m{font-size:1.35rem;}
+    .ex-top .correct b{font-size:1.9rem;}
+    .hint{font-size:1.02rem;}
+    .ex-h h3,.ex-h .all{font-size:.95rem;}
+    .steps{gap:18px;}
+    .steps li{padding-left:40px;}
+    .steps li::before{width:28px;height:28px;font-size:.9rem;}
+    .steps p{font-size:1.08rem;}
+    .steps .m{font-size:1.4rem;}
+    .fig{max-width:520px;}
+    .fig figcaption{font-size:.85rem;}
     .score .big{font-size:5.5rem;}
-    .score .sub{font-size:1rem;}
+    .score .msg{font-size:1.08rem;}
+    .score .sub{font-size:.92rem;}
     .review h2{font-size:.95rem;}
     .row summary{font-size:1.25rem;padding:14px 18px;}
     .row summary small{font-size:.85rem;}
+    .row summary .wq{font-size:1.02rem;}
     .row .mine{font-size:.9rem;}
     .row .mine b{font-size:1.2rem;}
     .row-ex{padding:14px 18px 18px;}
@@ -245,7 +314,7 @@
     .keys{grid-template-columns:repeat(3,1fr);}
     .keys button{height:52px;}
   }
-  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
 </style>
 </head>
 <body>
@@ -308,19 +377,45 @@ function explainAdd(a, b){
     const s = a > 0 ? '＋' : '−';
     return [
       { say: `どちらも${a > 0 ? '正の数' : '負の数'}で、符号が同じです。<b>符号が同じときは、絶対値（符号をとった数）をたして、同じ符号「${s}」をつけます</b>。`, math: `${A} ＋ ${B} ＝ ${A + B}` },
-      { say: `符号「${s}」をつけて、答えを出します。`, math: head + ' ＝ ' + numText(a + b) }
+      { say: `符号「${s}」をつけて、答えを出します。`, math: head + ' ＝ ' + numText(a + b), fig: numberLine(a, b) }
     ];
   }
   const steps = [{
     say: '符号がちがいます。<b>符号がちがうときは、絶対値の大きいほうから小さいほうをひいて、絶対値が大きいほうの符号をつけます</b>。',
     math: `${Math.max(A, B)} － ${Math.min(A, B)} ＝ ${Math.abs(A - B)}`
   }];
-  if (A === B) steps.push({ say: '絶対値が同じなので、答えは 0 です。', math: head + ' ＝ 0' });
+  if (A === B) steps.push({ say: '絶対値が同じなので、答えは 0 です。', math: head + ' ＝ 0', fig: numberLine(a, b) });
   else {
     const big = A > B ? a : b;
-    steps.push({ say: `絶対値が大きいのは ${signed(big)} なので、符号は「${big > 0 ? '＋' : '−'}」です。`, math: head + ' ＝ ' + numText(a + b) });
+    steps.push({ say: `絶対値が大きいのは ${signed(big)} なので、符号は「${big > 0 ? '＋' : '−'}」です。`, math: head + ' ＝ ' + numText(a + b), fig: numberLine(a, b) });
   }
   return steps;
+}
+
+// 数直線の図：0 から a まで進み、そこから b だけ進む（＋は右へ、−は左へ）
+// ことばの説明と図の両方があると、符号の動きがイメージとして残りやすい
+function numberLine(a, b){
+  const s = a + b;
+  const span = Math.max(0, a, s) - Math.min(0, a, s);
+  const step = span > 40 ? 10 : span > 16 ? 5 : 1;
+  const lo = Math.floor(Math.min(0, a, s) / step) * step - step;
+  const hi = Math.ceil(Math.max(0, a, s) / step) * step + step;
+  const X = v => +(20 + (v - lo) / (hi - lo) * 520).toFixed(1);
+  const Y = 74;
+  const arrow = (from, to, y, n) => {
+    const d = to > from ? 1 : -1, x = X(to);
+    return `<line x1="${X(from)}" y1="${y}" x2="${x - 7 * d}" y2="${y}" class="a${n}"/>` +
+      `<polygon points="${x},${y} ${x - 10 * d},${y - 5} ${x - 10 * d},${y + 5}" class="h${n}"/>` +
+      `<text x="${((X(from) + x) / 2).toFixed(1)}" y="${y - 8}" class="s${n}">${signed(to - from)}</text>`;
+  };
+  let ticks = '';
+  for (let v = lo; v <= hi; v += step) ticks += `<line x1="${X(v)}" y1="${Y - 5}" x2="${X(v)}" y2="${Y + 5}" class="tick"/>`;
+  const labels = [...new Set([0, a, s])].map(v => `<text x="${X(v)}" y="${Y + 23}"${v === s ? ' class="ans"' : ''}>${numText(v)}</text>`).join('');
+  return '<figure class="fig"><figcaption>数直線で見ると（＋ は右へ、− は左へ進む）</figcaption>' +
+    `<svg class="nl" viewBox="0 0 560 104" role="img" aria-label="${numText(a)} から ${signed(b)} 進むと ${numText(s)}">` +
+    `<line x1="12" y1="${Y}" x2="548" y2="${Y}" class="axis"/>${ticks}` +
+    `<line x1="${X(a)}" y1="30" x2="${X(a)}" y2="${Y}" class="guide"/><line x1="${X(s)}" y1="30" x2="${X(s)}" y2="${Y}" class="guide"/>` +
+    arrow(0, a, 52, 1) + arrow(a, s, 30, 2) + labels + '</svg></figure>';
 }
 
 // 3つの数のたし算・ひき算
@@ -707,7 +802,7 @@ const UNITS = [
   { id:'muldiv', mark:'×', name:'正負の数（かけ算・わり算）', hint:'累乗・四則の混じった式も', gen:genMulDiv },
   { id:'expr',   mark:'x', name:'文字と式（式の値）',         hint:'x に数を代入して計算', gen:genExprValue },
   { id:'eq',     mark:'＝', name:'一次方程式',                 hint:'x を求める（答えは整数）', gen:genEquation },
-  { id:'mix',    mark:'∞', name:'まぜこぜ',                   hint:'4つの単元からランダム', gen:null }
+  { id:'mix',    mark:'∞', name:'まぜこぜ',                   hint:'4つの単元がまざって出る（まぜると、どの解き方を使うか考える力がつく）', badge:'ふく習におすすめ', gen:null }
 ];
 
 function makeQuestions(unitId, n){
@@ -1073,13 +1168,14 @@ function stepsHTML(q){
     <li>
       ${s.say ? `<p>${s.say}</p>` : ''}
       ${s.math ? `<div class="m num">${mathLines(s.math).map(l => `<span>${l}</span>`).join('')}</div>` : ''}
+      ${s.fig || ''}
     </li>`).join('') + '</ol>';
 }
 function hintFor(q, mine){
   if (q.answer !== 0 && mine === -q.answer){
-    return '数字は合っていますが、<b>符号（＋ と −）が反対</b>になっています。どこで符号が決まるか、下のとき方でたしかめよう。';
+    return '数字は合っています。<b>符号（＋ と −）だけが反対</b>です。どこで符号が決まるか、とき方でたしかめよう。';
   }
-  return '計算スペースに書いた式と、下のとき方を1行ずつくらべて、どこがちがうか見つけよう。';
+  return 'まちがいは、のびるチャンス。計算スペースに書いた式と、とき方を1行ずつくらべて、どこでずれたか見つけよう。';
 }
 // 「x ＝ 5」「5 個」のように、答えの前後の文字をつける
 function answerText(q, n){
@@ -1092,7 +1188,7 @@ function explainHTML(q, mine){
       <span class="correct">正しい答え<b class="num">${answerText(q, q.answer)}</b></span>
     </div>
     <p class="hint">${hintFor(q, mine)}</p>
-    <h3>とき方</h3>
+    <div class="ex-h"><h3>とき方</h3><button class="all" type="button">ぜんぶ見る</button></div>
     ${stepsHTML(q)}`;
 }
 
@@ -1101,18 +1197,19 @@ function screenHome(){
   resetScreen('');
   app.innerHTML = `
     <p class="title">中1数学ドリル</p>
-    <p class="lead">単元をえらぶと、毎回ちがう問題が自動で出ます。答えはぜんぶ整数です。文章問題もまざって出ます。<br>計算スペースと答えの欄には、Apple Pencil や指で書けます。</p>
+    <p class="lead">単元をえらぶと、毎回ちがう問題が出ます。答えはぜんぶ整数で、文章問題もまざります。</p>
     <div class="menu">
       ${UNITS.map(u => `
         <button class="unit" data-unit="${u.id}">
           <span class="mark num">${u.mark}</span>
-          <span><b>${u.name}</b><span>${u.hint}</span></span>
+          <span><b>${u.name}${u.badge ? `<span class="badge">${u.badge}</span>` : ''}</b><span>${u.hint}</span></span>
         </button>`).join('')}
     </div>
     <div class="count">
       <span>問題数</span>
       ${[5, 10, 20].map(n => `<button data-n="${n}" aria-pressed="${state.total === n}">${n}問</button>`).join('')}
-    </div>`;
+    </div>
+    <p class="tip">計算は、計算スペースに書きながら考えよう。書くと、頭の中で覚えておくことがへるので計算に集中でき、まちがいにも気づきやすくなります。</p>`;
 
   app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
     state.total = Number(b.dataset.n);
@@ -1144,7 +1241,7 @@ function screenQuiz(){
       <span class="num">${state.i + 1} / ${state.qs.length}</span>
       <button class="quit">やめる</button>
     </div>
-    <div class="track"><i style="width:${(state.i / state.qs.length) * 100}%"></i></div>
+    <div class="dots" aria-hidden="true">${state.qs.map((_, k) => `<i class="${k < state.i ? 'done' : k === state.i ? 'now' : ''}"></i>`).join('')}</div>
     <div class="main">
       <section class="left">
         <div class="q ${q.word ? 'word' : 'num'}">${q.word ? '<span class="tag">文章題</span>' : ''}${q.text}</div>
@@ -1191,7 +1288,7 @@ function screenQuiz(){
       </section>
     </div>`;
 
-  const color = getComputedStyle(document.documentElement).getPropertyValue('--white').trim();
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--pen').trim();
   workInk = createInk(document.getElementById('work'), { color, width: 2.5 });
   ansInk = createInk(document.getElementById('ans'), {
     color, width: 5,
@@ -1278,22 +1375,45 @@ function submit(){
 
   const go = document.getElementById('go');
   if (ok){
+    // ほめるのは「頭のよさ」ではなく、やり方やがんばり
+    const praise = workInk.strokes.length ? '式を書いて考えられたね' : pick(['ていねいに計算できたね', '手順どおりにできたね', '集中できているね', 'その調子で続けよう']);
     document.getElementById('slot').classList.add('ok');
-    document.getElementById('readLabel').textContent = '正解！';
+    document.getElementById('readLabel').textContent = '○ 正解！ ' + praise;
     go.textContent = '正解！';
     go.classList.add('ok');
     go.disabled = true;
-    nextTimer = setTimeout(nextQuestion, 900);
+    nextTimer = setTimeout(nextQuestion, 1300);
   } else {
     const ex = document.getElementById('explain');
     ex.innerHTML = explainHTML(q, mine);
     ex.hidden = false;
     document.getElementById('answer').hidden = true;
     document.getElementById('right').classList.add('explaining');
-    go.textContent = 'つぎへ';
-    go.classList.add('next');
     go.disabled = false;
-    go.onclick = nextQuestion;
+    // とき方は1行ずつ開く。つぎの行を自分で考えてから見ると、ただ読むより記憶に残りやすい
+    const items = [...ex.querySelectorAll('.steps li')];
+    let shown = 1;
+    items.forEach((li, k) => { li.hidden = k >= shown; });
+    const update = () => {
+      const done = shown >= items.length;
+      go.textContent = done ? 'つぎの問題へ' : `つぎはどうなる？ 考えてからタップ（${shown} / ${items.length}）`;
+      go.classList.toggle('step', !done);
+      go.classList.toggle('next', done);
+      ex.querySelector('.all').hidden = done;
+    };
+    go.onclick = () => {
+      if (shown >= items.length) return nextQuestion();
+      items[shown].hidden = false;
+      items[shown].scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      shown++;
+      update();
+    };
+    ex.querySelector('.all').onclick = () => {
+      items.forEach(li => { li.hidden = false; });
+      shown = items.length;
+      update();
+    };
+    update();
   }
 }
 
@@ -1307,6 +1427,13 @@ function nextQuestion(){
 }
 
 /* ---- 結果画面 ---- */
+// 点数だけでなく、つぎに何をすれば伸びるかを伝える
+function resultMessage(right, n){
+  if (right === n) return 'ぜんぶ正解！ 手順が身についてきています。何日かあけて「まぜこぜ」でもう一度ためすと、さらに忘れにくくなります。';
+  if (right / n >= 0.7) return 'よくできました。まちがえた問題は、とき方を見たあとにもう一度解くと、いちばん記憶に残ります。';
+  return 'まちがえた問題こそ、のびるチャンス。とき方を1行ずつ読んでから、もう一度解いてみよう。';
+}
+
 function screenResult(){
   resetScreen('');
   const time = Date.now() - state.t0;
@@ -1316,7 +1443,8 @@ function screenResult(){
   app.innerHTML = `
     <div class="score">
       <div class="big num">${right}<u> / ${state.results.length}</u></div>
-      <div class="sub">かかった時間 ${fmtTime(time)}　・　1問あたり ${(time / state.results.length / 1000).toFixed(1)}秒</div>
+      <p class="msg">${resultMessage(right, state.results.length)}</p>
+      <div class="sub">かかった時間 ${fmtTime(time)}</div>
     </div>
     <div class="review">
       ${wrong.length === 0 ? '<h2>全問正解です。</h2>' : '<h2>まちがえた問題（タップすると、とき方が見られます）</h2>' + wrong.map(r => `
