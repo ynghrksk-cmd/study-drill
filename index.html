@@ -556,7 +556,12 @@ const SHAPES = {
   '4': [ [[line(.5, 0, 0, .68, .72, .68)], [line(.52, .28, .52, 1)]], [[line(.12, 0, .05, .62, .72, .62)], [line(.55, 0, .55, 1)]], [[line(.55, 1, .55, 0, 0, .68, .72, .68)]] ],
   '5': [ [[line(.15, 0, .1, .44), arc(.36, .7, .32, .29, 235, 500)], [line(.15, 0, .65, 0)]], [[line(.65, 0, .15, 0, .1, .44), arc(.36, .7, .32, .29, 235, 500)]] ],
   '6': [ [[arc(.62, .72, .57, .72, 265, 180), arc(.35, .72, .3, .28, 180, -180)]] ],
-  '7': [ [[line(.02, 0, .68, 0, .25, 1)]], [[line(.02, .22, .02, 0, .68, 0, .3, 1)]] ],
+  '7': [
+    [[line(.02, 0, .68, 0, .25, 1)]], [[line(.02, .22, .02, 0, .68, 0, .3, 1)]], [[line(.02, .25, .02, 0)], [line(.08, 0, .68, 0, .3, 1)]],
+    // 1画目に長いたて棒、右がほぼまっすぐ下におりる「7」
+    [[line(.02, .5, .02, 0)], [line(.06, .06, .68, .04, .55, 1)]], [[line(.02, .5, .02, 0)], [line(.06, .06, .68, .04, .64, 1)]],
+    [[line(.04, .45, .04, 0, .68, 0, .56, 1)]]
+  ],
   '8': [ [[arc(.35, .25, .26, .25, 90, 450), arc(.35, .74, .33, .26, 270, 630)]] ],
   '9': [ [[arc(.35, .28, .3, .28, 0, -360), line(.65, .28, .62, 1)]], [[arc(.35, .28, .3, .28, 0, -360), arc(.2, .28, .45, .72, 0, 90)]] ]
 };
@@ -650,12 +655,42 @@ function learn(label, pts){
 
 function classify(strokes){
   const pts = cloud(strokes);
-  let best = '?', bestD = INK_LIMIT;
+  let best = '?', bestD = INK_LIMIT * 2;
   for (const t of getTemplates()){
     const d = cloudDistance(pts, t.pts, bestD);
     if (d < bestD){ bestD = d; best = t.label; }
   }
-  return { label: best, pts };
+  return { label: bestD < INK_LIMIT ? best : '?', d: bestD, pts };
+}
+
+// となりあう線のまとまり（run）を1文字として読み、読みにくさ（cost）をつける
+function readChar(run, ref, first){
+  const flat = g => g.maxX - g.minX > (g.maxY - g.minY) * 2 && g.maxY - g.minY < ref * 0.3;
+  const minX = Math.min(...run.map(g => g.minX)), maxX = Math.max(...run.map(g => g.maxX));
+  const minY = Math.min(...run.map(g => g.minY)), maxY = Math.max(...run.map(g => g.maxY));
+  const w = maxX - minX, h = maxY - minY;
+  const strokes = [].concat(...run.map(g => g.strokes));
+  let merge = 0;
+  if (run.length === 1){
+    if (Math.max(w, h) < ref * 0.12) return { label: '', cost: 0 };                  // ペン先がふれただけの点
+    if (flat(run[0])) return first ? { label: '-', cost: 1, pts: null } : { label: '?', cost: INK_LIMIT, pts: null };  // 横線は「−」
+  } else {
+    if (run.some(flat)) return null;
+    let right = run[0].maxX;
+    for (const g of run.slice(1)){
+      if (g.minX - right > ref * 0.2) return null;                                  // はなれすぎた線は、同じ字にしない
+      right = Math.max(right, g.maxX);
+    }
+    if (w > ref * 1.2) return null;
+    // いちばん高いまとまり以外も背が高いときは、別々の字の可能性が高い（「10」の 1 と 0 など）
+    const tall = run.map(g => Math.max(0, (g.maxY - g.minY) / ref - 0.6) * 25);
+    merge = tall.reduce((s, t) => s + t, 0) - Math.max(...tall);
+  }
+  // 字の高さにくらべて低いもの（「7」の1画目のたて棒だけ、など）は、1文字としては読みにくい
+  const small = Math.max(0, 0.75 - h / ref) * 30;
+  if (strokes.length === 1 && w < h * 0.25 && h > ref * 0.4) return { label: '1', cost: 1 + small, pts: cloud(strokes) };  // たての細い線は「1」
+  const c = classify(strokes);
+  return { label: c.label, cost: 1 + c.d + small + merge, pts: c.pts };
 }
 
 // 答えの欄の線を、左から1文字ずつに分けて読む
@@ -682,20 +717,20 @@ function readInk(strokes, boxH){
     }
   }
 
+  // 1文字の区切り方をいくつか試して、いちばん自然に読める区切り方を選ぶ
+  // （「7」の左上のチョンや「4」「5」の2画目が、少しはなれて書かれても1文字として読むため）
   const ref = Math.max(boxH * 0.3, ...groups.map(g => g.maxY - g.minY));
-  const out = [];
-  groups.forEach(g => {
-    const w = g.maxX - g.minX, h = g.maxY - g.minY;
-    if (Math.max(w, h) < ref * 0.12) return;                                  // ペン先がふれただけの点
-    if (w > h * 2 && h < ref * 0.3){                                          // 横線は「−」
-      out.push({ label: out.length === 0 ? '-' : '?', pts: null });
-    } else if (g.strokes.length === 1 && w < h * 0.25 && h > ref * 0.4){      // たての細い線は「1」
-      out.push({ label: '1', pts: cloud(g.strokes) });
-    } else {
-      out.push(classify(g.strokes));
+  const best = [{ cost: 0, chars: [] }];
+  for (let i = 1; i <= groups.length; i++){
+    best[i] = { cost: Infinity, chars: [] };
+    for (let j = Math.max(0, i - 3); j < i; j++){
+      const ch = readChar(groups.slice(j, i), ref, best[j].chars.length === 0);
+      if (!ch || best[j].cost + ch.cost >= best[i].cost) continue;
+      best[i] = { cost: best[j].cost + ch.cost, chars: ch.label ? best[j].chars.concat([ch]) : best[j].chars };
     }
-  });
-  return { text: out.map(o => o.label).join(''), groups: out };
+  }
+  const chars = best[groups.length].chars;
+  return { text: chars.map(c => c.label).join(''), groups: chars };
 }
 
 /* ============================================================
@@ -761,6 +796,7 @@ function createInk(wrap, opt){
     e.preventDefault();
     try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
     const p = at(e);
+    if (opt.onStart) opt.onStart();
     cur = { id: e.pointerId, type: e.pointerType };
     if (ink.tool === 'eraser') erase(p);
     else { cur.s = [p]; ink.strokes.push(cur.s); redraw(); }
@@ -808,6 +844,7 @@ function createInk(wrap, opt){
 const app = document.getElementById('app');
 const state = { unit:null, total:10, qs:[], i:0, input:'', read:null, locked:false, results:[], t0:0 };
 let workInk = null, ansInk = null, readTimer = null, nextTimer = null;
+const READ_WAIT = 900;   // ペンをはなしてから、答えを読みとるまでの時間（ミリ秒）
 
 function fmtTime(ms){
   const s = Math.round(ms / 1000);
@@ -953,9 +990,15 @@ function screenQuiz(){
   ansInk = createInk(document.getElementById('ans'), {
     color, width: 5,
     locked: () => state.locked,
+    // 書いている間は読まない。ペンをはなしてしばらくたってから、書き上がった字をまとめて読む
+    onStart: () => {
+      clearTimeout(readTimer);
+      readTimer = -1;
+      draw();
+    },
     onChange: () => {
       clearTimeout(readTimer);
-      readTimer = setTimeout(readAnswer, 350);
+      readTimer = setTimeout(readAnswer, READ_WAIT);
       draw();
     }
   });
@@ -967,8 +1010,8 @@ function screenQuiz(){
   });
   app.querySelector('[data-work="undo"]').onclick = () => workInk.undo();
   app.querySelector('[data-work="clear"]').onclick = () => workInk.clear();
-  app.querySelector('[data-ans="undo"]').onclick = () => { if (!state.locked) ansInk.undo(); };
-  app.querySelector('[data-ans="clear"]').onclick = () => { if (!state.locked) ansInk.clear(); };
+  app.querySelector('[data-ans="undo"]').onclick = () => { if (!state.locked){ ansInk.undo(); readAnswer(); } };
+  app.querySelector('[data-ans="clear"]').onclick = () => { if (!state.locked){ ansInk.clear(); readAnswer(); } };
   app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => press(b.dataset.k));
   document.getElementById('go').onclick = submit;
   draw();
@@ -986,6 +1029,7 @@ function readAnswer(){
 
 function press(k){
   if (state.locked) return;
+  if (readTimer) readAnswer();   // 書いた字を先に読んでから、キーで直す
   if (k === 'del') state.input = state.input.slice(0, -1);
   else if (k === '-') state.input = state.input.startsWith('-') ? state.input.slice(1) : '-' + state.input;
   else if (state.input.replace('-', '').length < 4) state.input += k;
@@ -995,11 +1039,13 @@ function press(k){
 function draw(){
   const val = document.getElementById('val');
   if (!val) return;
-  const unreadable = state.input.includes('?');
-  val.textContent = state.input === '' ? '—' : state.input.replace('-', '−').replace(/\?/g, '？');
-  val.classList.toggle('empty', state.input === '');
+  const waiting = readTimer !== null;   // 書いている途中か、読みとる前
+  const unreadable = !waiting && state.input.includes('?');
+  val.textContent = waiting ? '…' : state.input === '' ? '—' : state.input.replace('-', '−').replace(/\?/g, '？');
+  val.classList.toggle('empty', waiting || state.input === '');
   document.getElementById('readLabel').textContent = unreadable ? '読みとれない字があります。書きなおすか、キーで直してね' : 'きみの答え';
-  document.getElementById('go').disabled = !/^-?\d+$/.test(state.input);
+  // 読みとる前でも「答え合わせ」は押せる（押したときに読みとる）
+  document.getElementById('go').disabled = waiting ? ansInk.strokes.length === 0 : !/^-?\d+$/.test(state.input);
   document.getElementById('ph').hidden = ansInk.strokes.length > 0;
 }
 
