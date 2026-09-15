@@ -85,6 +85,11 @@
     font-size:.84rem;color:var(--ink-2);background:var(--surface);
   }
   .count button[aria-pressed="true"]{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:700;}
+  .top-row{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+  .switch{
+    flex:none;padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);
+    color:var(--ink-2);font-size:.8rem;font-weight:600;text-decoration:none;
+  }
   .tip{
     margin:18px 0 0;padding:12px 14px;border-radius:12px;border:1px dashed var(--line);
     background:var(--surface);color:var(--ink-2);font-size:.82rem;line-height:1.8;
@@ -255,6 +260,7 @@
     .count,.count button{font-size:.95rem;}
     .count button{padding:10px 20px;}
     .tip{font-size:.95rem;}
+    .switch{font-size:.92rem;padding:8px 18px;}
     .bar{font-size:.95rem;}
     .bar .quit{padding:8px 16px;font-size:.9rem;}
     .dots i{height:8px;}
@@ -1196,7 +1202,10 @@ function explainHTML(q, mine){
 function screenHome(){
   resetScreen('');
   app.innerHTML = `
-    <p class="title">中1数学ドリル</p>
+    <div class="top-row">
+      <p class="title">中1数学ドリル</p>
+      <a class="switch" href="science.html">理科ドリルへ</a>
+    </div>
     <p class="lead">単元をえらぶと、毎回ちがう問題が出ます。答えはぜんぶ整数で、文章問題もまざります。</p>
     <div class="menu">
       ${UNITS.map(u => `
