@@ -86,6 +86,7 @@
   }
   .count button[aria-pressed="true"]{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:700;}
   .top-row{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+  .switches{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;}
   .switch{
     flex:none;padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);
     color:var(--ink-2);font-size:.8rem;font-weight:600;text-decoration:none;
@@ -1204,7 +1205,7 @@ function screenHome(){
   app.innerHTML = `
     <div class="top-row">
       <p class="title">中1数学ドリル</p>
-      <a class="switch" href="science.html">理科ドリルへ</a>
+      <span class="switches"><a class="switch" href="science.html">理科</a><a class="switch" href="kokugo.html">国語</a></span>
     </div>
     <p class="lead">単元をえらぶと、毎回ちがう問題が出ます。答えはぜんぶ整数で、文章問題もまざります。</p>
     <div class="menu">

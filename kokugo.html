@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#F4F1EA">
-<title>中1理科ドリル</title>
+<title>中1国語ドリル</title>
 <style>
   /* ============================================================
      色の意味は固定する（毎回同じ意味で出てくると、見ただけでわかる）
@@ -316,9 +316,8 @@
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
 
-  /* ---- 理科ドリルだけで使う部品 ---- */
+  /* ---- 理科ドリルと共通の部品（選択肢・思い出す問題など） ---- */
   .top-row{display:flex;justify-content:space-between;align-items:center;gap:12px;}
-  .switches{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;}
   .switch{
     flex:none;padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);
     color:var(--ink-2);font-size:.8rem;font-weight:600;text-decoration:none;
@@ -380,6 +379,45 @@
     .choices{grid-template-columns:1fr;}
     .right.explaining.is-choice .choices{grid-template-columns:1fr 1fr;}
   }
+
+  /* ---- 国語ドリルだけで使う部品 ---- */
+  .switches{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;}
+  /* 国語は文章を読むので、問題文は少し大きく、行間を広く */
+  .q.word .sent{
+    display:block;margin-top:8px;padding:8px 14px;border-radius:10px;background:var(--bg);
+    font-size:1.2em;font-weight:600;line-height:1.9;
+  }
+  .q.word .mean{display:block;margin-top:6px;font-size:.85em;color:var(--ink-2);}
+  u.tg{text-decoration:none;border-bottom:2px solid var(--ink);padding:0 2px;}
+  .ne{color:var(--ok);font-weight:700;margin-left:1px;}
+  /* 文章題の本文 */
+  .passage{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 18px;}
+  .passage h3{margin:0 0 6px;font-size:.85rem;color:var(--ink-2);font-weight:700;}
+  .passage p{margin:0;font-size:1.05rem;line-height:2.05;letter-spacing:.03em;text-indent:1em;}
+  .left.has-passage .work{flex:0 0 auto;height:130px;min-height:0;}
+  /* 漢字を書くマス */
+  .write-row{display:flex;gap:10px;align-items:stretch;}
+  .write-box{flex:1;height:190px;}
+  .write-box::after{
+    content:'';position:absolute;inset:12px;pointer-events:none;border-radius:6px;
+    background:linear-gradient(var(--line),var(--line)) center/100% 1px no-repeat,linear-gradient(var(--line),var(--line)) center/1px 100% no-repeat;
+    opacity:.6;
+  }
+  .model{
+    flex:0 0 42%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;padding:10px;text-align:center;
+    background:var(--ok-soft);border-radius:14px;
+  }
+  .model-ch{margin:0;font-size:2.6rem;font-weight:700;line-height:1.2;color:var(--ink);word-break:keep-all;}
+  @media (min-width:700px){
+    .passage p{font-size:1.2rem;}
+    .left.has-passage .work{height:150px;}
+    .write-box{height:230px;}
+    .model-ch{font-size:3.2rem;}
+  }
+  @media (min-width:1000px) and (orientation:landscape){
+    .left.has-passage .work{height:120px;}
+    .write-box{height:210px;}
+  }
 </style>
 </head>
 <body>
@@ -388,11 +426,16 @@
 <script>
 /* ============================================================
    1. 問題を作る部分
-      問題は次の3つの形のどれか。どれも { unit, type, text, answer, steps } を持つ。
-        type:'num'    … 計算問題。答えは整数で、手書きかキーで答える（suffix に単位）
-        type:'choice' … 4つの選択肢から選ぶ（choices に選択肢）
+      問題は次の形のどれか。どれも { unit, type, text, answer, steps } を持つ。
+        type:'choice' … 選択肢から選ぶ（choices に選択肢）
         type:'recall' … 頭の中で思い出してから「答えを見る」を押し、自分で ○× をつける
-      steps は、まちがえたときに見せる「とき方」。{ say: 説明, math: 式 } の配列。
+        type:'write'  … 大きなマスに手書きしてから「答えを見る」を押し、お手本とくらべて ○× をつける
+        type:'num'    … 数字で答える（手書きかキー）。文節の数など
+      passage があるときは、左がわに文章を表示する（文章題）。
+      steps は、まちがえたときに見せる「とき方」。{ say: 説明 } の配列。
+
+      国語のことばは乱数だけでは作れないので、理科ドリルと同じく
+      きまり（漢字・語句・文法・文章）をデータで持ち、出し方・選択肢・順番を毎回かえて問題を作る。
    ============================================================ */
 
 // a以上b以下の整数をランダムに1つ返す
@@ -405,311 +448,351 @@ function shuffle(arr){
   for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
-// 負の数を「−7」のように全角マイナスで表す
 function numText(n){ return n < 0 ? '−' + Math.abs(n) : String(n); }
 function answerStep(s){ return { say: '<b>答え</b>　' + s }; }
-
-/* ---- 計算問題（答えは必ず整数。答えを先に決めてから問題を作る）---- */
-
-// 植物：蒸散の実験（ワセリンをぬった葉）
-function calcTranspiration(){
-  const front = rnd(1, 4), back = front + rnd(2, 6), stem = rnd(1, 3);
-  const A = front + back + stem, B = front + stem, C = back + stem;
-  const askBack = Math.random() < 0.5;
-  const text = `同じくらいの葉の枝を3本用意し、水の減った量を調べました。A：何もぬらない → ${A} mL、B：葉の<b>裏</b>にワセリンをぬる → ${B} mL、C：葉の<b>表</b>にワセリンをぬる → ${C} mL。葉の${askBack ? '裏' : '表'}から出ていった水は何 mL ですか。`;
-  return { unit: 'plant', type: 'num', suffix: 'mL', answer: askBack ? back : front, text, steps: [
-    { say: '<b>ワセリンをぬったところからは、蒸散（水が出ていくこと）がおこらない</b>。それぞれ、どこから水が出ていくかを書き出します。', math: ['A：表 ＋ 裏 ＋ 茎', 'B：表 ＋ 茎（裏をふさいだ）', 'C：裏 ＋ 茎（表をふさいだ）'] },
-    askBack
-      ? { say: 'A と B のちがいは「裏」だけです。<b>A から B をひく</b>と、裏から出た水の量になります。', math: `${A} － ${B} ＝ ${back}` }
-      : { say: 'A と C のちがいは「表」だけです。<b>A から C をひく</b>と、表から出た水の量になります。', math: `${A} － ${C} ＝ ${front}` },
-    answerStep(`${askBack ? back : front} mL（葉の裏のほうが気孔が多いので、ふつうは裏から多く出ます）`)
-  ]};
+// 正しい答えと、まちがいの候補から、選択肢を4つ（足りなければあるだけ）作る
+function makeChoices(answer, pool){
+  return shuffle([answer, ...shuffle([...new Set(pool.filter(x => x !== answer))]).slice(0, 3)]);
 }
+// ひらがな → カタカナ
+function toKata(s){ return s.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60)); }
 
-// 物質：密度
-function calcDensity(){
-  const d = rnd(2, 9), V = rnd(2, 15), m = d * V;
-  if (Math.random() < 0.5){
-    return { unit: 'matter', type: 'num', suffix: 'g/cm³', answer: d,
-      text: `質量 ${m} g、体積 ${V} cm³ の物質があります。この物質の密度は何 g/cm³ ですか。`,
-      steps: [
-        { say: '<b>密度 ＝ 質量 ÷ 体積</b>（1 cm³ あたりの質量）です。', math: '密度（g/cm³）＝ 質量（g）÷ 体積（cm³）' },
-        { say: '数を入れて計算します。', math: `${m} ÷ ${V} ＝ ${d}` },
-        answerStep(`${d} g/cm³`)
-      ] };
-  }
-  return { unit: 'matter', type: 'num', suffix: 'g', answer: m,
-    text: `密度が ${d} g/cm³ の物質が ${V} cm³ あります。質量は何 g ですか。`,
-    steps: [
-      { say: '<b>密度 ＝ 質量 ÷ 体積</b> なので、形をかえると <b>質量 ＝ 密度 × 体積</b> です。', math: '質量（g）＝ 密度（g/cm³）× 体積（cm³）' },
-      { say: '数を入れて計算します。', math: `${d} × ${V} ＝ ${m}` },
-      answerStep(`${m} g`)
-    ] };
-}
-
-// 物質：質量パーセント濃度
-function calcConcentration(){
-  const p = pick([5, 10, 15, 20, 25]), total = 20 * rnd(3, 15), solute = total * p / 100, water = total - solute;
-  if (Math.random() < 0.5){
-    return { unit: 'matter', type: 'num', suffix: '%', answer: p,
-      text: `水 ${water} g に食塩 ${solute} g をとかしました。この食塩水の質量パーセント濃度は何 % ですか。`,
-      steps: [
-        { say: '<b>質量パーセント濃度（%）＝ 溶質の質量 ÷ 溶液の質量 × 100</b> です。', math: '濃度 ＝ 溶質 ÷ 溶液 × 100' },
-        { say: '<b>溶液の質量 ＝ 溶質 ＋ 溶媒</b>。水だけでわらないように注意しよう。', math: `${solute} ＋ ${water} ＝ ${total}（g）` },
-        { say: '数を入れて計算します。', math: `${solute} ÷ ${total} × 100 ＝ ${p}` },
-        answerStep(`${p} %`)
-      ] };
-  }
-  return { unit: 'matter', type: 'num', suffix: 'g', answer: solute,
-    text: `${p} % の食塩水が ${total} g あります。この中にとけている食塩は何 g ですか。`,
-    steps: [
-      { say: '<b>質量パーセント濃度（%）＝ 溶質の質量 ÷ 溶液の質量 × 100</b> なので、<b>溶質 ＝ 溶液 × 濃度 ÷ 100</b> です。' },
-      { say: '数を入れて計算します。', math: `${total} × ${p} ÷ 100 ＝ ${solute}` },
-      answerStep(`${solute} g`)
-    ] };
-}
-
-// 力：音の速さ
-function calcSound(){
-  if (Math.random() < 0.5){
-    const t = rnd(2, 9), d = 340 * t;
-    return { unit: 'force', type: 'num', suffix: 'm', answer: d,
-      text: `いなずまが光ってから ${t} 秒後に音が聞こえました。音の速さを 340 m/s とすると、いなずまは何 m はなれたところですか。`,
-      steps: [
-        { say: `<b>光はほぼ一瞬でとどく</b>ので、音が進んだ時間を ${t} 秒と考えます。` },
-        { say: '<b>距離 ＝ 速さ × 時間</b> です。', math: `340 × ${t} ＝ ${d}` },
-        answerStep(`${d} m`)
-      ] };
-  }
-  const t = 2 * rnd(1, 5), d = 340 * t / 2;
-  return { unit: 'force', type: 'num', suffix: 'm', answer: d,
-    text: `山に向かって大きな声を出したら、${t} 秒後にこだまが聞こえました。音の速さを 340 m/s とすると、山までは何 m ですか。`,
-    steps: [
-      { say: '<b>こだまは、山まで行って返ってきた音</b>です。音が進んだのは「山までの距離の2倍」です。' },
-      { say: '<b>距離 ＝ 速さ × 時間</b> で、音が進んだ距離を出します。', math: `340 × ${t} ＝ ${340 * t}` },
-      { say: '往復なので 2 でわります。', math: `${340 * t} ÷ 2 ＝ ${d}` },
-      answerStep(`${d} m`)
-    ] };
-}
-
-// 力：ばねののび（フックの法則）
-function calcSpring(){
-  const a = rnd(1, 4), n = rnd(2, 8), g = 100 * n, x = a * n;
-  return { unit: 'force', type: 'num', suffix: 'cm', answer: x,
-    text: `1 N の力で ${a} cm のびるばねがあります。このばねに ${g} g のおもりをつるすと、何 cm のびますか。（100 g の物体にはたらく重力を 1 N とします）`,
-    steps: [
-      { say: '<b>100 g の物体にはたらく重力は 1 N</b> です。おもりの重さを N に直します。', math: `${g} g → ${n} N` },
-      { say: `<b>ばねののびは、ばねを引く力の大きさに比例する</b>（フックの法則）。1 N で ${a} cm なので、${a} cm に N の数をかけます。`, math: `${a} × ${n} ＝ ${x}` },
-      answerStep(`${x} cm`)
-    ] };
-}
-
-// 力：圧力
-function calcPressure(){
-  const A = pick([0.1, 0.2, 0.25, 0.4, 0.5]), P = 20 * rnd(2, 20), F = Math.round(P * A);
-  return { unit: 'force', type: 'num', suffix: 'Pa', answer: P,
-    text: `重さ ${F} N の物体を、面積 ${A} m² の面を下にして置きました。床が受ける圧力は何 Pa ですか。`,
-    steps: [
-      { say: '<b>圧力（Pa）＝ 面を垂直におす力（N）÷ 力がはたらく面積（m²）</b> です。面積の単位が m² になっているか確かめよう。' },
-      { say: '数を入れて計算します。小数でわるときは、わる数とわられる数を同じだけ大きくすると計算しやすくなります。', math: [`${F} ÷ ${A}`, `＝ ${F * 100} ÷ ${Math.round(A * 100)}`, `＝ ${P}`] },
-      answerStep(`${P} Pa`)
-    ] };
-}
-
-// 大地：地震（初期微動継続時間）
-function calcQuake(){
-  const k = rnd(2, 12), d = 12 * k, tp = d / 6, ts = d / 4, gap = ts - tp;
-  if (Math.random() < 0.5){
-    return { unit: 'earth', type: 'num', suffix: '秒', answer: gap,
-      text: `P波の速さを 6 km/s、S波の速さを 4 km/s とします。震源から ${d} km の地点での初期微動継続時間は何秒ですか。`,
-      steps: [
-        { say: '<b>初期微動継続時間 ＝ S波がとどく時間 － P波がとどく時間</b> です（P波で初期微動、S波で主要動がはじまる）。' },
-        { say: '<b>時間 ＝ 距離 ÷ 速さ</b> で、それぞれがとどく時間を出します。', math: [`P波：${d} ÷ 6 ＝ ${tp}（秒）`, `S波：${d} ÷ 4 ＝ ${ts}（秒）`] },
-        { say: 'ひき算をします。', math: `${ts} － ${tp} ＝ ${gap}` },
-        answerStep(`${gap} 秒`)
-      ] };
-  }
-  // 1 秒あたり 12 km の地震。基準の地点（3〜5 秒）から、ちがう秒数の地点の距離を求める
-  let g0 = rnd(3, 5);
-  if (g0 === gap) g0 = gap === 3 ? 4 : 3;
-  return { unit: 'earth', type: 'num', suffix: 'km', answer: d,
-    text: `ある地震で、震源から ${12 * g0} km の地点の初期微動継続時間は ${g0} 秒でした。初期微動継続時間が ${gap} 秒の地点は、震源から何 km ですか。`,
-    steps: [
-      { say: '<b>初期微動継続時間は、震源からの距離に比例する</b>。つまり、1 秒あたりの距離はどの地点でも同じです。' },
-      { say: '1 秒あたり何 km かを出します。', math: `${12 * g0} ÷ ${g0} ＝ 12（km）` },
-      { say: `${gap} 秒ぶんの距離を出します。`, math: `12 × ${gap} ＝ ${d}` },
-      answerStep(`${d} km`)
-    ] };
-}
-
-const CALC = { plant: [calcTranspiration], matter: [calcDensity, calcConcentration], force: [calcSound, calcSpring, calcPressure], earth: [calcQuake] };
-
-/* ---- 用語と分類のデータ ----
-   理科の用語は乱数だけでは作れないので、ここに「きまり」を1回だけ書いておき、
-   出し方（選択肢／思い出す）、選択肢の組み合わせ、順番を毎回かえて問題を作る。
-
-   TERMS  … { unit, group, term, desc（〜を何といいますか の「〜」）, note（とき方で見せる補足） }
-             選択肢のまちがいは、同じ group の用語から選ぶ
-   SORTS  … 分類の問題。{ unit, ask, rule（とき方で見せるきまり）, cats: { なかまの名前: [例, …] } }
-   ============================================================ */
-const TERMS = [
-  // 植物のなかま
-  { unit:'plant', group:'work', term:'光合成', desc:'植物が光を受けて、水と二酸化炭素からデンプンなどの養分をつくるはたらき', note:'葉の細胞の<b>葉緑体</b>で行われ、<b>酸素</b>も出されます。' },
-  { unit:'plant', group:'work', term:'蒸散', desc:'植物のからだの中の水が、水蒸気になって出ていくこと', note:'おもに葉の<b>気孔</b>から出ていきます。根から水を吸い上げる力にもなります。' },
-  { unit:'plant', group:'work', term:'受粉', desc:'花粉が、めしべの柱頭につくこと', note:'受粉すると、<b>胚珠は種子に、子房は果実に</b>なります。' },
-  { unit:'plant', group:'work', term:'呼吸', desc:'植物も動物も、昼も夜も行う、酸素をとり入れて二酸化炭素を出すはたらき', note:'光合成は光があるときだけですが、<b>呼吸は一日中</b>行われています。' },
-  { unit:'plant', group:'part', term:'気孔', desc:'葉の表皮にある、2つの孔辺細胞にかこまれたすきま', note:'<b>酸素・二酸化炭素・水蒸気の出入り口</b>です。ふつう葉の裏側に多くあります。' },
-  { unit:'plant', group:'part', term:'葉緑体', desc:'植物の細胞の中にある、緑色の小さな粒', note:'<b>光合成を行う場所</b>です。' },
-  { unit:'plant', group:'part', term:'道管', desc:'根から吸い上げた水や肥料分が通る管', note:'茎の維管束では<b>内側（中心側）</b>にあります。「<b>水は道管</b>」と覚えよう。' },
-  { unit:'plant', group:'part', term:'師管', desc:'葉でつくられた養分が通る管', note:'茎の維管束では<b>外側</b>にあります。' },
-  { unit:'plant', group:'part', term:'維管束', desc:'道管と師管が集まって、束のようになった部分', note:'葉では<b>葉脈</b>として見えます。' },
-  { unit:'plant', group:'part', term:'胚珠', desc:'受粉すると、成長して種子になる部分', note:'被子植物では子房の中に、裸子植物ではむき出しになっています。' },
-  { unit:'plant', group:'part', term:'子房', desc:'めしべの根もとのふくらんだ部分で、受粉すると果実になるところ', note:'<b>子房 → 果実、胚珠 → 種子</b> とセットで覚えよう。' },
-  { unit:'plant', group:'part', term:'仮根', desc:'コケ植物にある、からだを地面などに固定するための根のようなつくり', note:'コケ植物は、水を<b>からだの表面全体から</b>吸収します。仮根は水を吸うためのものではありません。' },
-  { unit:'plant', group:'part', term:'胞子のう', desc:'シダ植物やコケ植物で、ふえるための胞子が入っているふくろ', note:'シダ植物やコケ植物は、<b>種子ではなく胞子でふえます</b>。' },
-
-  // 身のまわりの物質
-  { unit:'matter', group:'word', term:'有機物', desc:'炭素をふくみ、燃やすと二酸化炭素ができる物質', note:'砂糖・デンプン・ロウ・プラスチックなど。<b>燃やすと二酸化炭素と水ができる</b>ものが多いです。' },
-  { unit:'matter', group:'word', term:'密度', desc:'物質 1 cm³ あたりの質量', note:'<b>密度 ＝ 質量 ÷ 体積</b>。物質によって決まっているので、物質を見分ける手がかりになります。' },
-  { unit:'matter', group:'word', term:'状態変化', desc:'温度によって、物質が固体・液体・気体とすがたをかえること', note:'状態変化では<b>体積は変わりますが、質量は変わりません</b>。' },
-  { unit:'matter', group:'word', term:'沸点', desc:'液体が沸とうして気体になるときの温度', note:'水の沸点は 100℃。物質によって決まっています。' },
-  { unit:'matter', group:'word', term:'融点', desc:'固体がとけて液体になるときの温度', note:'水（氷）の融点は 0℃。' },
-  { unit:'matter', group:'word', term:'蒸留', desc:'液体を加熱して出てきた気体を冷やし、ふたたび液体にして集める方法', note:'<b>沸点のちがい</b>を利用して、水とエタノールなどの混合物を分けられます。' },
-  { unit:'matter', group:'word', term:'再結晶', desc:'水にとかした物質を、冷やしたり水を蒸発させたりして、ふたたび結晶としてとり出すこと', note:'<b>溶解度のちがい</b>を利用します。' },
-  { unit:'matter', group:'word', term:'溶解度', desc:'100 g の水にとける物質の最大の質量', note:'温度によって変わります。' },
-  { unit:'matter', group:'word', term:'溶質', desc:'食塩水の食塩のように、水にとけている物質', note:'<b>溶質（とけている物質）＋ 溶媒（とかしている液体）＝ 溶液</b>。' },
-  { unit:'matter', group:'word', term:'溶媒', desc:'食塩水の水のように、物質をとかしている液体', note:'<b>溶質 ＋ 溶媒 ＝ 溶液</b>。' },
-  { unit:'matter', group:'gas', term:'酸素', desc:'ものを燃やすはたらきがあり、二酸化マンガンにオキシドール（うすい過酸化水素水）を加えると発生する気体', note:'火のついた線香を入れると、<b>激しく燃える</b>ことで確かめます。' },
-  { unit:'matter', group:'gas', term:'二酸化炭素', desc:'石灰水を白くにごらせ、石灰石にうすい塩酸を加えると発生する気体', note:'<b>石灰水が白くにごる</b>のが目じるしです。' },
-  { unit:'matter', group:'gas', term:'水素', desc:'火を近づけるとポンと音を立てて燃え、亜鉛にうすい塩酸を加えると発生する気体', note:'<b>いちばん軽い気体</b>で、燃えると水ができます。' },
-  { unit:'matter', group:'gas', term:'アンモニア', desc:'鼻をさすようなにおいがあり、水にとても溶けやすく、水溶液がアルカリ性になる気体', note:'空気より軽く水にとけやすいので、<b>上方置換法</b>で集めます。' },
-  { unit:'matter', group:'gas', term:'窒素', desc:'空気の体積の約 78 % をしめる気体', note:'色もにおいもなく、ほかの物質と反応しにくい気体です。' },
-  { unit:'matter', group:'collect', term:'水上置換法', desc:'水にとけにくい気体を、水と入れかえて集める方法', note:'酸素・水素など。<b>空気がまざりにくい</b>のがよいところです。' },
-  { unit:'matter', group:'collect', term:'下方置換法', desc:'水にとけやすく、空気より重い（密度が大きい）気体を集める方法', note:'二酸化炭素（水に少しとける）などで使います。' },
-  { unit:'matter', group:'collect', term:'上方置換法', desc:'水にとけやすく、空気より軽い（密度が小さい）気体を集める方法', note:'アンモニアなどで使います。' },
-
-  // 光・音・力
-  { unit:'force', group:'light', term:'反射の法則', desc:'光が鏡などではね返るとき、入射角と反射角が等しくなるというきまり', note:'<b>入射角 ＝ 反射角</b>。' },
-  { unit:'force', group:'light', term:'屈折', desc:'光が、空気から水やガラスなどちがう物質へ進むとき、境界面で折れ曲がること', note:'空気 → 水では、<b>屈折角は入射角より小さく</b>なります。' },
-  { unit:'force', group:'light', term:'全反射', desc:'水やガラスから空気へ光が進むとき、入射角が大きいと、光が空気中に出ないで全部はね返ること', note:'光ファイバーに利用されています。' },
-  { unit:'force', group:'light', term:'焦点', desc:'凸レンズの軸に平行な光が、レンズを通ったあとに集まる点', note:'レンズの中心から焦点までの距離を<b>焦点距離</b>といいます。' },
-  { unit:'force', group:'light', term:'実像', desc:'凸レンズを通った光が実際に集まってできる、スクリーンにうつる像', note:'<b>上下左右が逆向き</b>になります。' },
-  { unit:'force', group:'light', term:'虚像', desc:'物体を凸レンズの焦点の内側に置き、レンズをのぞくと見える、スクリーンにはうつらない像', note:'<b>物体と同じ向きで、大きく</b>見えます（虫めがね）。' },
-  { unit:'force', group:'sound', term:'振幅', desc:'音を出す物体のふれはばのこと', note:'<b>振幅が大きいほど、音は大きく</b>なります。' },
-  { unit:'force', group:'sound', term:'振動数', desc:'音を出す物体が、1 秒間にふるえる回数', note:'単位は<b>ヘルツ（Hz）</b>。<b>振動数が多いほど、音は高く</b>なります。' },
-  { unit:'force', group:'sound', term:'音源', desc:'音を出している物体のこと', note:'音は、音源の<b>振動</b>が空気などを伝わってとどきます。真空中では伝わりません。' },
-  { unit:'force', group:'force', term:'重力', desc:'地球が、物体をその中心に向かって引く力', note:'100 g の物体にはたらく重力が、およそ <b>1 N</b> です。' },
-  { unit:'force', group:'force', term:'弾性力', desc:'変形した物体が、もとの形にもどろうとして生じる力', note:'のびたばね、おされたゴムなどではたらきます。' },
-  { unit:'force', group:'force', term:'摩擦力', desc:'物体がふれ合っている面で、物体の動きをさまたげる向きにはたらく力', note:'動こうとする向きと<b>反対向き</b>にはたらきます。' },
-  { unit:'force', group:'force', term:'垂直抗力', desc:'机の上の物体を、机の面が垂直におし返す力', note:'机の上で止まっている物体では、<b>重力と垂直抗力がつり合って</b>います。' },
-  { unit:'force', group:'force', term:'質量', desc:'場所が変わっても変わらない、物体そのものの量（単位は g や kg）', note:'月では重さ（重力）は約 1/6 になりますが、<b>質量は変わりません</b>。' },
-
-  // 大地の変化
-  { unit:'earth', group:'volcano', term:'マグマ', desc:'地下の岩石が高温でどろどろにとけたもの', note:'マグマが冷えて固まると<b>火成岩</b>になります。' },
-  { unit:'earth', group:'volcano', term:'鉱物', desc:'マグマが冷えてできた、火山灰や岩石にふくまれる結晶の粒', note:'セキエイ・チョウ石（白っぽい）、クロウンモ・カクセン石など（黒っぽい）があります。' },
-  { unit:'earth', group:'volcano', term:'斑状組織', desc:'大きな鉱物（斑晶）が、細かい粒やガラス質（石基）の間に散らばっているつくり', note:'<b>地表近くで急に冷えた</b>火山岩のつくりです。' },
-  { unit:'earth', group:'volcano', term:'等粒状組織', desc:'同じくらいの大きさの鉱物がきっちり組み合わさっているつくり', note:'<b>地下深くでゆっくり冷えた</b>深成岩のつくりです。' },
-  { unit:'earth', group:'volcano', term:'火山噴出物', desc:'噴火のときにふき出された、溶岩・火山弾・火山灰・火山ガスなどをまとめたよび方', note:'火山灰などが固まってできた岩石が<b>凝灰岩</b>です。' },
-  { unit:'earth', group:'quake', term:'震源', desc:'地下で、地震が発生した場所', note:'震源の<b>真上の地表の点</b>は震央といいます。' },
-  { unit:'earth', group:'quake', term:'震央', desc:'震源の真上にある地表の地点', note:'震源は地下、<b>震央は地表</b>です。' },
-  { unit:'earth', group:'quake', term:'初期微動', desc:'地震で、はじめにくる小さなゆれ（P波によるゆれ）', note:'あとからくる大きなゆれは<b>主要動（S波）</b>です。' },
-  { unit:'earth', group:'quake', term:'主要動', desc:'地震で、あとからくる大きなゆれ（S波によるゆれ）', note:'<b>P波 → 初期微動、S波 → 主要動</b>。' },
-  { unit:'earth', group:'quake', term:'震度', desc:'ある地点での、地震のゆれの大きさを表すもの（0〜7 の 10 段階）', note:'震源から遠いほど、ふつう小さくなります。' },
-  { unit:'earth', group:'quake', term:'マグニチュード', desc:'地震そのものの規模（放出されたエネルギーの大きさ）を表すもの', note:'1 つの地震に 1 つの値です。<b>震度は場所ごと</b>にちがいます。' },
-  { unit:'earth', group:'quake', term:'活断層', desc:'過去にくり返し活動し、これからも活動して地震を起こす可能性がある断層', note:'' },
-  { unit:'earth', group:'strata', term:'風化', desc:'岩石が、気温の変化や雨水などによって、表面からくずれていくこと', note:'<b>風化 → 侵食 → 運搬 → 堆積</b> の順に地層ができていきます。' },
-  { unit:'earth', group:'strata', term:'侵食', desc:'流れる水が、岩石をけずりとるはたらき', note:'<b>けずる（侵食）→ 運ぶ（運搬）→ 積もらせる（堆積）</b>。' },
-  { unit:'earth', group:'strata', term:'堆積', desc:'流れる水に運ばれた土砂が、流れのゆるやかなところで積もること', note:'<b>粒が大きいものほど、先に（河口の近くに）</b>積もります。' },
-  { unit:'earth', group:'strata', term:'示相化石', desc:'地層ができた当時の環境を知る手がかりになる化石', note:'サンゴ（あたたかく浅い海）、シジミ（河口や湖）など。' },
-  { unit:'earth', group:'strata', term:'示準化石', desc:'地層ができた時代を知る手がかりになる化石', note:'三葉虫（古生代）、アンモナイト（中生代）、ビカリア（新生代）など。' },
-  { unit:'earth', group:'strata', term:'かぎ層', desc:'はなれた場所の地層を比べるときの目じるしになる層（火山灰の層など）', note:'' },
-  { unit:'earth', group:'strata', term:'しゅう曲', desc:'地層に大きな力がはたらいて、波打つように曲がったもの', note:'力でずれた場合は<b>断層</b>といいます。' }
+/* ---- 漢字 ----
+   { w: 漢字のことば, y: 読み（ひらがな）, s: 例文（{} のところにことばが入る）, m: 意味 }
+   中学で習う常用漢字をふくむことばから選んでいる（教科書によって出てくる学年は少しちがう） */
+const KANJI = [
+  { w:'把握', y:'はあく', s:'クラスの様子を{}する。', m:'しっかり理解すること' },
+  { w:'抑制', y:'よくせい', s:'感情を{}する。', m:'いきおいをおさえること' },
+  { w:'紹介', y:'しょうかい', s:'友達を家族に{}する。', m:'知らない人どうしを引き合わせること' },
+  { w:'継続', y:'けいぞく', s:'練習を{}する。', m:'続けること' },
+  { w:'緩和', y:'かんわ', s:'交通の混雑を{}する。', m:'きびしさや程度をやわらげること' },
+  { w:'輪郭', y:'りんかく', s:'山の{}がくっきり見える。', m:'もののまわりの線' },
+  { w:'雰囲気', y:'ふんいき', s:'楽しい{}の教室。', m:'その場にただよう感じ' },
+  { w:'遠慮', y:'えんりょ', s:'{}なく質問する。', m:'ひかえめにすること' },
+  { w:'描写', y:'びょうしゃ', s:'心の動きを{}する。', m:'ようすを文章や絵で表すこと' },
+  { w:'鑑賞', y:'かんしょう', s:'美術館で絵画を{}する。', m:'芸術作品を味わうこと' },
+  { w:'渋滞', y:'じゅうたい', s:'道路が{}している。', m:'つかえて、すらすら進まないこと' },
+  { w:'穏やか', y:'おだやか', s:'{}な天気が続く。', m:'静かで落ち着いているようす' },
+  { w:'慌てる', y:'あわてる', s:'急に呼ばれて{}。', m:'落ち着きをなくす' },
+  { w:'携わる', y:'たずさわる', s:'新しい研究に{}。', m:'ある仕事に関係する' },
+  { w:'促す', y:'うながす', s:'発言を{}。', m:'早くするようにすすめる' },
+  { w:'潤う', y:'うるおう', s:'雨で畑が{}。', m:'水分を得てしめる' },
+  { w:'隔てる', y:'へだてる', s:'ついたてで部屋を{}。', m:'間に物をおいてさえぎる' },
+  { w:'費やす', y:'ついやす', s:'作品づくりに一年を{}。', m:'時間やお金を使う' },
+  { w:'誇り', y:'ほこり', s:'ふるさとに{}をもつ。', m:'自分や仲間をすぐれていると思う気持ち' },
+  { w:'偏る', y:'かたよる', s:'栄養が{}。', m:'一方に寄る' },
+  { w:'稼ぐ', y:'かせぐ', s:'時間を{}。', m:'はたらいて得る。有利になるように進める' },
+  { w:'契機', y:'けいき', s:'転校を{}に日記を始めた。', m:'物事が起こったり変わったりするきっかけ' },
+  { w:'貢献', y:'こうけん', s:'チームの勝利に{}する。', m:'役に立つようにつくすこと' },
+  { w:'克服', y:'こくふく', s:'苦手を{}する。', m:'努力して困難に打ち勝つこと' },
+  { w:'模倣', y:'もほう', s:'先生の字を{}する。', m:'まねること' },
+  { w:'曖昧', y:'あいまい', s:'{}な返事をする。', m:'はっきりしないようす' },
+  { w:'頻繁', y:'ひんぱん', s:'{}に連絡をとる。', m:'何度もくり返すようす' },
+  { w:'顕著', y:'けんちょ', s:'効果が{}に表れる。', m:'きわだって目立つようす' },
+  { w:'焦点', y:'しょうてん', s:'話の{}をしぼる。', m:'注意や関心が集まるところ' },
+  { w:'岐路', y:'きろ', s:'人生の{}に立つ。', m:'わかれ道' },
+  { w:'弾む', y:'はずむ', s:'会話が{}。', m:'いきおいよく進む' },
+  { w:'漂う', y:'ただよう', s:'花の香りが{}。', m:'空中や水面にふわふわとうかぶ。気配が感じられる' },
+  { w:'朗らか', y:'ほがらか', s:'{}に笑う。', m:'明るく楽しそうなようす' },
+  { w:'鮮やか', y:'あざやか', s:'{}な色の服。', m:'色や形がはっきりして美しいようす' },
+  { w:'健やか', y:'すこやか', s:'子どもが{}に育つ。', m:'体がじょうぶで元気なようす' },
+  { w:'奪う', y:'うばう', s:'目を{}ほどの景色。', m:'むりにとる。心を強く引きつける' },
+  { w:'控える', y:'ひかえる', s:'おやつを{}。', m:'量や回数を少なくする' },
+  { w:'及ぼす', y:'およぼす', s:'健康に影響を{}。', m:'作用や影響をあたえる' },
+  { w:'兼ねる', y:'かねる', s:'図書委員と放送委員を{}。', m:'一つで二つ以上の役目をする' },
+  { w:'施設', y:'しせつ', s:'町の運動{}を利用する。', m:'ある目的のためにつくられた建物や設備' },
+  { w:'往復', y:'おうふく', s:'駅まで{}する。', m:'行って帰ってくること' },
+  { w:'拡張', y:'かくちょう', s:'道路を{}する。', m:'広げて大きくすること' },
+  { w:'賛否', y:'さんぴ', s:'計画の{}を問う。', m:'賛成と反対' },
+  { w:'警戒', y:'けいかい', s:'台風に{}する。', m:'よくないことが起こらないよう用心すること' },
+  { w:'需要', y:'じゅよう', s:'冬はストーブの{}が増える。', m:'ほしいと求めること' },
+  { w:'恩恵', y:'おんけい', s:'自然の{}を受ける。', m:'めぐみ' }
 ];
 
-const SORTS = [
-  { unit:'plant', ask:'次の植物は、どのなかまですか。',
-    rule:'<b>種子をつくる</b>：胚珠が子房にかこまれている → 被子植物、胚珠がむき出し → 裸子植物。<b>種子をつくらない（胞子でふえる）</b>：根・茎・葉の区別がある → シダ植物、区別がない → コケ植物。',
-    cats:{ 被子植物:['アブラナ','サクラ','ツツジ','イネ','ヒマワリ'], 裸子植物:['マツ','イチョウ','スギ','ソテツ'], シダ植物:['イヌワラビ','ゼンマイ','スギナ'], コケ植物:['ゼニゴケ','スギゴケ'] } },
-  { unit:'plant', ask:'次の特徴は、どちらのなかまですか。',
-    rule:'<b>単子葉類</b>：子葉 1 枚・葉脈は平行・根はひげ根・茎の維管束は散らばる。<b>双子葉類</b>：子葉 2 枚・葉脈は網目状・根は主根と側根・茎の維管束は輪のように並ぶ。',
-    cats:{ 単子葉類:['子葉が 1 枚','葉脈が平行に並ぶ','根がひげ根','茎の維管束が散らばっている','イネやトウモロコシ'], 双子葉類:['子葉が 2 枚','葉脈が網目状','根が主根と側根','茎の維管束が輪のように並ぶ','アサガオやヒマワリ'] } },
-  { unit:'matter', ask:'次の物質は、どちらですか。',
-    rule:'<b>有機物</b>は炭素をふくみ、燃やすと二酸化炭素ができる物質。それ以外が<b>無機物</b>です。二酸化炭素や炭素そのものは、炭素をふくんでいても無機物に分けます。',
-    cats:{ 有機物:['砂糖','デンプン','ロウ','エタノール','プラスチック','紙'], 無機物:['食塩','鉄','ガラス','水','酸素','二酸化炭素'] } },
-  { unit:'matter', ask:'次の性質は、金属に共通する性質ですか。',
-    rule:'<b>金属に共通する性質</b>：電気をよく通す・熱をよく伝える・みがくと光る（金属光沢）・たたくと広がり、引っぱるとのびる。<b>磁石につくのは鉄など一部の金属だけ</b>なので、共通の性質ではありません。',
-    cats:{ '共通する性質':['電気をよく通す','熱をよく伝える','みがくと光る','たたくと広がる'], '共通の性質ではない':['磁石につく','水にうく','燃えると二酸化炭素ができる','電気を通さない'] } },
-  { unit:'force', ask:'弦をはじいて音を出します。次のようにすると、音はどうなりますか。',
-    rule:'<b>音の大きさは振幅</b>で決まる（強くはじく → 振幅が大きい → 大きい音）。<b>音の高さは振動数</b>で決まる（弦を短く・細く・強く張る → 振動数が多い → 高い音）。',
-    cats:{ '音が大きくなる':['弦を強くはじく','振幅を大きくする'], '音が高くなる':['弦を短くする','弦を細いものにかえる','弦を強く張る','振動数を多くする'] } },
-  { unit:'force', ask:'凸レンズでできる像について、次のときの像はどちらですか。',
-    rule:'<b>物体が焦点の外側</b> → 光が実際に集まり、スクリーンにうつる<b>実像</b>（上下左右が逆）。<b>物体が焦点の内側</b> → スクリーンにはうつらず、レンズをのぞくと見える<b>虚像</b>（同じ向きで大きい）。',
-    cats:{ 実像:['物体を焦点の外側に置いたとき','スクリーンにうつる像','上下左右が逆向きの像'], 虚像:['物体を焦点の内側に置いたとき','虫めがねで近くのものを大きく見たとき','物体と同じ向きの像'] } },
-  { unit:'earth', ask:'次の岩石は、どのなかまですか。',
-    rule:'<b>火成岩</b>（マグマが冷えて固まった）は2つ。地表近くで急に冷えた<b>火山岩</b>（斑状組織）：流紋岩・安山岩・玄武岩。地下深くでゆっくり冷えた<b>深成岩</b>（等粒状組織）：花こう岩・せん緑岩・はんれい岩。白っぽい順に、火山岩は流紋岩 → 安山岩 → 玄武岩、深成岩は花こう岩 → せん緑岩 → はんれい岩 と、ペアで覚えるとまちがえにくくなります。<b>堆積岩</b>は、土砂や生物の死がいなどが積もって固まった岩石です。',
-    cats:{ 火山岩:['流紋岩','安山岩','玄武岩'], 深成岩:['花こう岩','せん緑岩','はんれい岩'], 堆積岩:['れき岩','砂岩','泥岩','石灰岩','チャート','凝灰岩'] } },
-  { unit:'earth', ask:'次の化石は、どの時代の示準化石ですか。',
-    rule:'<b>古生代</b>：三葉虫・フズリナ。<b>中生代</b>：アンモナイト・恐竜。<b>新生代</b>：ビカリア・ナウマンゾウ。',
-    cats:{ 古生代:['三葉虫','フズリナ'], 中生代:['アンモナイト','恐竜'], 新生代:['ビカリア','ナウマンゾウ'] } },
-  { unit:'earth', ask:'次の特徴は、マグマのねばりけがどちらの火山ですか。',
-    rule:'<b>ねばりけが強い</b> → 盛り上がったドーム状・激しい噴火・溶岩や火山灰は白っぽい（例：昭和新山、雲仙普賢岳）。<b>ねばりけが弱い</b> → 傾斜のゆるやかな形・おだやかな噴火・黒っぽい（例：マウナロア）。',
-    cats:{ 'ねばりけが強い':['盛り上がったドーム状の形','激しく爆発的な噴火','白っぽい溶岩','昭和新山'], 'ねばりけが弱い':['傾斜がゆるやかな形','おだやかに溶岩が流れ出る噴火','黒っぽい溶岩','マウナロア'] } }
+/* ---- 語句（慣用句・ことわざ・四字熟語）----
+   { k: 種類, w: ことば, m: 意味, b?: 四字熟語で□にする位置（0〜3）} */
+const GOKU = [
+  { k:'慣用句', w:'顔が広い', m:'知り合いが多い' },
+  { k:'慣用句', w:'耳が痛い', m:'自分の弱点を言われて、聞くのがつらい' },
+  { k:'慣用句', w:'口が重い', m:'あまりしゃべらない' },
+  { k:'慣用句', w:'手を焼く', m:'あつかいに困る' },
+  { k:'慣用句', w:'足が出る', m:'予定していたお金より多くかかる' },
+  { k:'慣用句', w:'目が高い', m:'よいものを見分ける力がある' },
+  { k:'慣用句', w:'鼻が高い', m:'ほこらしく、得意である' },
+  { k:'慣用句', w:'肩を持つ', m:'味方をする' },
+  { k:'慣用句', w:'腹を割る', m:'かくさずに本心を話す' },
+  { k:'慣用句', w:'首を長くする', m:'いまかいまかと待ちこがれる' },
+  { k:'慣用句', w:'舌を巻く', m:'とても感心する' },
+  { k:'慣用句', w:'水に流す', m:'過去のもめごとをなかったことにする' },
+  { k:'ことわざ', w:'石の上にも三年', m:'つらくてもがまんして続ければ、いつかはむくわれる' },
+  { k:'ことわざ', w:'急がば回れ', m:'急ぐときほど、確実な方法をとったほうが結局は早い' },
+  { k:'ことわざ', w:'猿も木から落ちる', m:'その道の名人でも、失敗することがある' },
+  { k:'ことわざ', w:'転ばぬ先の杖', m:'失敗しないように、前もって用心することが大切だ' },
+  { k:'ことわざ', w:'情けは人のためならず', m:'人に親切にすると、めぐりめぐって自分にもよいことが返ってくる' },
+  { k:'ことわざ', w:'百聞は一見にしかず', m:'何度も聞くより、一度自分の目で見るほうがよくわかる' },
+  { k:'ことわざ', w:'ちりも積もれば山となる', m:'小さなことでも積み重なれば大きなものになる' },
+  { k:'ことわざ', w:'船頭多くして船山に上る', m:'指図する人が多いと、物事がおかしな方向へ進む' },
+  { k:'ことわざ', w:'弘法にも筆の誤り', m:'その道の名人でも、失敗することがある' },
+  { k:'ことわざ', w:'住めば都', m:'どんな所でも、住みなれればよい所に思えてくる' },
+  { k:'四字熟語', w:'一石二鳥', m:'一つのことをして、二つの利益を得ること', b:1 },
+  { k:'四字熟語', w:'以心伝心', m:'言葉にしなくても、気持ちが通じ合うこと', b:2 },
+  { k:'四字熟語', w:'自画自賛', m:'自分で自分のことをほめること', b:1 },
+  { k:'四字熟語', w:'半信半疑', m:'半分信じて、半分うたがうこと', b:3 },
+  { k:'四字熟語', w:'一期一会', m:'一生に一度だけの出会いを大切にすること', b:1 },
+  { k:'四字熟語', w:'温故知新', m:'昔のことを学んで、新しい考えや知識を得ること', b:1 },
+  { k:'四字熟語', w:'大器晩成', m:'大人物は、ゆっくり時間をかけて大成すること', b:2 },
+  { k:'四字熟語', w:'針小棒大', m:'小さなことを大げさに言うこと', b:3 },
+  { k:'四字熟語', w:'異口同音', m:'多くの人が口をそろえて同じことを言うこと', b:1 },
+  { k:'四字熟語', w:'試行錯誤', m:'何度も試して失敗をくり返しながら、よい方法を見つけること', b:3 },
+  { k:'四字熟語', w:'臨機応変', m:'その場のようすに合わせて、うまく対応すること', b:2 },
+  { k:'四字熟語', w:'有言実行', m:'言ったことを、必ず実行すること', b:1 }
 ];
 
-/* ---- 用語・分類から問題を作る ---- */
+/* ---- 文法 ----
+   BUNSETSU … 文節で「/」区切りにした文。s: 主語の文節、p: 述語の文節（ないときは null）
+   HINSHI   … 単語と品詞。文の中で、その単語に下線を引いて出す
+   KANKEI   … 2つの文節の関係 */
+const BUNSETSU = [
+  { t:'私は/毎朝/犬と/散歩する。', s:'私は', p:'散歩する。' },
+  { t:'青い/空に/白い/雲が/うかぶ。', s:'雲が', p:'うかぶ。' },
+  { t:'弟が/庭で/元気に/遊んで/いる。', s:'弟が', p:null },
+  { t:'きのう/図書館で/おもしろい/本を/借りた。', s:null, p:'借りた。' },
+  { t:'駅前の/花屋が/新しく/開店した。', s:'花屋が', p:'開店した。' },
+  { t:'兄も/明日の/試合に/出る。', s:'兄も', p:'出る。' },
+  { t:'夜空の/星が/とても/きれいだ。', s:'星が', p:'きれいだ。' },
+  { t:'山田さんは/クラスの/委員長です。', s:'山田さんは', p:'委員長です。' },
+  { t:'風が/強く/ふいて/木が/ゆれた。', s:null, p:null },
+  { t:'母が/作った/カレーは/とても/おいしい。', s:'カレーは', p:'おいしい。' },
+  { t:'ぼくは/自転車で/海まで/行った。', s:'ぼくは', p:'行った。' },
+  { t:'校庭の/桜が/いっせいに/さいた。', s:'桜が', p:'さいた。' }
+];
 
-// 用語 → 選択肢の問題
-function termChoice(t){
-  const others = shuffle([...new Set(TERMS.filter(x => x.unit === t.unit && x.group === t.group && x.term !== t.term).map(x => x.term))]).slice(0, 3);
-  return { unit: t.unit, type: 'choice', answer: t.term, choices: shuffle([t.term, ...others]),
-    text: `${t.desc}を何といいますか。`,
+const HINSHI_RULE = {
+  名詞:'ものごとの名前を表す単語。「が・は」をつけて主語になれる。',
+  動詞:'動きや存在を表し、言い切りの形が「ウ段（う・く・す・る など）」で終わる単語。',
+  形容詞:'ようすや性質を表し、言い切りの形が「い」で終わる単語。',
+  形容動詞:'ようすや性質を表し、言い切りの形が「だ・です」で終わる単語（「静かだ」など）。',
+  副詞:'活用せず、おもに用言（動詞・形容詞・形容動詞）をくわしくする単語。',
+  連体詞:'活用せず、体言（名詞）だけをくわしくする単語（「この・大きな・ある」など）。',
+  接続詞:'活用せず、文と文、ことばとことばをつなぐ単語（「しかし・だから」など）。',
+  感動詞:'活用せず、感動・よびかけ・返事などを表す単語（「ああ・はい」など）。',
+  助詞:'活用しない付属語。ほかの単語のあとについて、関係を示したり意味をそえたりする（「が・を・に・は」など）。',
+  助動詞:'活用する付属語。ほかの単語のあとについて、意味をそえる（「た・ない・られる」など）。'
+};
+const HINSHI = [
+  { s:'{}の音が聞こえる。', w:'雨', h:'名詞' },
+  { s:'友達と{}。', w:'話す', h:'動詞' },
+  { s:'公園まで{}。', w:'歩く', h:'動詞' },
+  { s:'この部屋は{}。', w:'明るい', h:'形容詞' },
+  { s:'{}山に登る。', w:'高い', h:'形容詞' },
+  { s:'図書館は{}。', w:'静かだ', h:'形容動詞' },
+  { s:'{}花がさく。', w:'きれいな', h:'形容動詞' },
+  { s:'{}走りだした。', w:'すぐに', h:'副詞' },
+  { s:'{}ゆっくり休もう。', w:'もっと', h:'副詞' },
+  { s:'{}本を読みたい。', w:'この', h:'連体詞' },
+  { s:'{}木の下で待つ。', w:'大きな', h:'連体詞' },
+  { s:'雨がふった。{}、試合は行われた。', w:'しかし', h:'接続詞' },
+  { s:'よく練習した。{}、優勝できた。', w:'だから', h:'接続詞' },
+  { s:'{}、なんて美しい景色だろう。', w:'ああ', h:'感動詞' },
+  { s:'「{}、わかりました。」', w:'はい', h:'感動詞' },
+  { s:'ぼく{}サッカーが好きだ。', w:'は', h:'助詞' },
+  { s:'手紙{}書く。', w:'を', h:'助詞' },
+  { s:'宿題をすませ{}。', w:'た', h:'助動詞' },
+  { s:'今日は出かけ{}。', w:'ない', h:'助動詞' }
+];
+
+const KANKEI_RULE = {
+  '主・述の関係':'「何が（だれが）」にあたる文節と、「どうする・どんなだ・何だ」にあたる文節の関係。',
+  '修飾・被修飾の関係':'くわしくする文節（修飾語）と、くわしくされる文節の関係。',
+  '並立の関係':'2つの文節が対等にならんでいて、入れかえても意味が変わらない関係。',
+  '補助の関係':'下の文節が、上の文節に意味をそえている関係（「〜て いる」「〜て みる」など）。'
+};
+// t: 文、a と b: 関係を問う2つの文節（t の中にそのまま出てくる）
+const KANKEI = [
+  { t:'鳥が 鳴く。', a:'鳥が', b:'鳴く。', r:'主・述の関係' },
+  { t:'今日は 空が 青い。', a:'空が', b:'青い。', r:'主・述の関係' },
+  { t:'これが ぼくの 家だ。', a:'これが', b:'家だ。', r:'主・述の関係' },
+  { t:'赤い 花が さく。', a:'赤い', b:'花が', r:'修飾・被修飾の関係' },
+  { t:'ゆっくり 歩く。', a:'ゆっくり', b:'歩く。', r:'修飾・被修飾の関係' },
+  { t:'毎日 学校で 勉強する。', a:'学校で', b:'勉強する。', r:'修飾・被修飾の関係' },
+  { t:'赤くて 丸い リンゴを 買う。', a:'赤くて', b:'丸い', r:'並立の関係' },
+  { t:'父と 母が 出かける。', a:'父と', b:'母が', r:'並立の関係' },
+  { t:'大きく 強い 犬が いる。', a:'大きく', b:'強い', r:'並立の関係' },
+  { t:'弟が 本を 読んで いる。', a:'読んで', b:'いる。', r:'補助の関係' },
+  { t:'料理を 作って みる。', a:'作って', b:'みる。', r:'補助の関係' },
+  { t:'机に 花が 置いて ある。', a:'置いて', b:'ある。', r:'補助の関係' }
+];
+
+/* ---- 文章題（読解）----
+   このアプリのために書いた短い文章。1つの文章に、いくつかの問いがある。
+   q: 問い、a: 正しい答え、x: まちがいの選択肢、why: とき方 */
+const PASSAGES = [
+  { title:'朝の散歩', body:
+    'ぼくは毎朝、祖父と川ぞいの道を散歩している。はじめは早起きがつらくて、しかたなくついて行っていた。【ア】、ある朝、祖父が「ほら、見てごらん」と川面を指さした。そこには、朝日を受けてきらきらと光る水の上を、白いサギがゆっくりと歩いていた。ぼくは思わず足を止めた。それからは、毎朝ちがう景色に出会えるのが楽しみになり、目覚まし時計が鳴る前に起きるようになった。',
+    qs:[
+      { q:'【ア】に入ることばとして、いちばん合うものはどれですか。', a:'ところが', x:['だから','つまり','たとえば'],
+        why:'前は「しかたなくついて行っていた」、後は「サギを見て気持ちが変わるきっかけ」です。<b>前と後ろの内容が反対の向きになるときは、逆接の接続語（ところが・しかし）</b>を使います。' },
+      { q:'「ぼく」の気持ちは、どのように変わりましたか。', a:'しかたなく散歩していたが、景色に出会うのが楽しみになった', x:['楽しく散歩していたが、早起きがつらくなった','祖父と話すのが楽しみで、はじめから早起きしていた','サギを見てこわくなり、散歩に行かなくなった'],
+        why:'<b>気持ちの変化は「はじめ」と「終わり」の文をくらべて読みとります</b>。はじめは「早起きがつらくて、しかたなく」、終わりは「毎朝ちがう景色に出会えるのが楽しみ」「目覚まし時計が鳴る前に起きる」です。' },
+      { q:'「ぼく」が「思わず足を止めた」のはなぜですか。', a:'光る川の上をサギが歩く景色に心をひかれたから', x:['祖父に止まるように言われたから','早起きで疲れてしまったから','川に落ちそうになったから'],
+        why:'<b>理由は、そのすぐ前に書かれていることが多い</b>です。直前に「朝日を受けてきらきらと光る水の上を、白いサギがゆっくりと歩いていた」とあり、その景色に心をうばわれたことがわかります。' }
+    ] },
+  { title:'ごみを減らす工夫', body:
+    '家庭から出るごみを減らすには、どうすればよいのだろうか。まず大切なのは、ごみになるものを家に持ちこまないことである。【ア】、買い物にエコバッグを持って行けば、レジ袋はいらなくなる。次に、使えるものは修理したり、ほかの人にゆずったりして、長く使うことである。そして、どうしても出るごみは、きちんと分別して資源として生かすことが必要だ。このように、一人ひとりが少しずつ工夫することで、ごみは確実に減らすことができるのである。',
+    qs:[
+      { q:'【ア】に入ることばとして、いちばん合うものはどれですか。', a:'たとえば', x:['しかし','それとも','なぜなら'],
+        why:'前は「ごみになるものを持ちこまない」という考え、後ろは「エコバッグを持って行く」という具体的な例です。<b>前の内容の例をあげるときは「たとえば」</b>を使います。' },
+      { q:'筆者が、この文章でいちばん伝えたいことはどれですか。', a:'一人ひとりが少しずつ工夫すれば、ごみは減らせる', x:['レジ袋は使ってはいけない','ごみの分別はむずかしい','こわれたものはすぐに捨てるべきだ'],
+        why:'<b>筆者の考えは、文章の最後の「このように」のあとにまとめて書かれることが多い</b>です。最後の文「一人ひとりが少しずつ工夫することで、ごみは確実に減らすことができる」が、いちばん伝えたいことです。' },
+      { q:'文章に書かれている工夫の順番として正しいものはどれですか。', a:'持ちこまない → 長く使う → 分別して生かす', x:['分別して生かす → 長く使う → 持ちこまない','長く使う → 持ちこまない → 分別して生かす','持ちこまない → 分別して生かす → 長く使う'],
+        why:'<b>「まず」「次に」「そして」という順序を表すことばに注目</b>します。まず＝持ちこまない、次に＝長く使う、そして＝分別して資源として生かす、の順です。' }
+    ] },
+  { title:'はじめての発表', body:
+    '発表の順番が近づくにつれて、手のひらがじっとりとしてきた。原稿を持つ手が小さくふるえている。前の人が席にもどり、先生がわたしの名前を呼んだ。教だんに立つと、クラスのみんなの顔がいっせいにこちらを向いた。そのとき、いちばん前の席の美咲が、小さくうなずいてくれた。わたしは深く息をすって、ゆっくりと話し始めた。',
+    qs:[
+      { q:'「手のひらがじっとりとしてきた」から、どんな気持ちが読みとれますか。', a:'きんちょうしている', x:['うれしくてわくわくしている','つかれてねむくなっている','おこっていらいらしている'],
+        why:'<b>気持ちは、はっきり書かれていなくても、体のようすや行動から読みとれます</b>。「手のひらがじっとり（あせ）」「手が小さくふるえている」は、きんちょうしているときのようすです。' },
+      { q:'「わたし」が落ち着いて話し始めるきっかけになったのは、どんなことですか。', a:'美咲が小さくうなずいてくれたこと', x:['先生に名前を呼ばれたこと','前の人が席にもどったこと','みんなの顔がこちらを向いたこと'],
+        why:'<b>気持ちや行動が変わる直前のできごとに注目</b>します。「美咲が、小さくうなずいてくれた」すぐあとに「深く息をすって、ゆっくりと話し始めた」とあるので、これがきっかけです。' }
+    ] }
+];
+
+/* ---- データから問題を作る ---- */
+
+// 例文の {} にことばを入れる（mark: 下線をつける／カタカナにする）
+function fillSent(k, how){
+  const inner = how === 'kata' ? `<u class="tg">${toKata(k.y)}</u>` : `<u class="tg">${k.w}</u>`;
+  return k.s.replace('{}', inner);
+}
+function kanjiSteps(k){
+  return [
+    { say: `<b>${k.w}</b>（${k.y}）：${k.m}。` },
+    { say: `例文：${k.s.replace('{}', k.w)}` },
+    answerStep(`${k.w}（${k.y}）`)
+  ];
+}
+
+// 漢字の読み（えらぶ／思い出す）
+function kanjiRead(){
+  const k = pick(KANJI);
+  const text = `線を引いたことばの<b>読み</b>を答えましょう。<span class="sent">${fillSent(k, 'kanji')}</span>`;
+  if (Math.random() < 0.5){
+    // まちがいの選択肢は、読みの長さが近いことばから
+    const pool = KANJI.filter(x => Math.abs(x.y.length - k.y.length) <= 1).map(x => x.y);
+    return { unit:'kanji', type:'choice', answer:k.y, choices:makeChoices(k.y, pool), text, steps:kanjiSteps(k) };
+  }
+  return { unit:'kanji', type:'recall', answer:`${k.y}`, text, steps:kanjiSteps(k) };
+}
+
+// 漢字の書き（手書きして自分で ○×）
+function kanjiWrite(){
+  const k = pick(KANJI);
+  return { unit:'kanji', type:'write', answer:k.w, sub:k.y,
+    text: `線を引いたカタカナを<b>漢字</b>に直して、右のマスに書きましょう。<span class="sent">${fillSent(k, 'kata')}</span>`,
     steps: [
-      { say: `<b>${t.term}</b>：${t.desc}。` },
-      ...(t.note ? [{ say: t.note }] : []),
-      answerStep(t.term)
+      { say: 'お手本と、自分の字を1画ずつくらべよう。<b>送りがな</b>（漢字のあとにつくひらがな）までふくめて同じか確かめます。' },
+      ...kanjiSteps(k)
     ] };
 }
-// 用語 → 思い出す問題
-function termRecall(t){
-  return { unit: t.unit, type: 'recall', answer: t.term,
-    text: `${t.desc}を何といいますか。`,
-    steps: [
-      { say: `<b>${t.term}</b>：${t.desc}。` },
-      ...(t.note ? [{ say: t.note }] : []),
-      answerStep(t.term)
-    ] };
-}
-// 分類 → 選択肢の問題
-function sortChoice(s){
-  const names = Object.keys(s.cats), cat = pick(names), item = pick(s.cats[cat]);
-  return { unit: s.unit, type: 'choice', answer: cat, choices: names.length <= 4 ? names.slice() : shuffle(names).slice(0, 4),
-    text: `${s.ask}<span class="item">${item}</span>`,
-    steps: [
-      { say: s.rule },
-      { say: `「${item}」は <b>${cat}</b> です。` },
-      answerStep(cat)
-    ] };
-}
 
-const TYPE_RATE = { num: 0.3, choice: 0.45 };   // のこりは「思い出す」問題
-
-function genScience(unit){
-  const calcs = CALC[unit] || [];
+// 語句：意味 → ことば／ことば → 意味／四字熟語の□
+function gokuQuestion(){
+  const g = pick(GOKU);
+  const same = GOKU.filter(x => x.k === g.k && x.m !== g.m);   // 意味が同じものは、まちがいの選択肢に入れない
+  const steps = [
+    { say: `<b>${g.w}</b>（${g.k}）：${g.m}。` },
+    answerStep(g.w)
+  ];
   const r = Math.random();
-  if (r < TYPE_RATE.num && calcs.length) return pick(calcs)();
-  const terms = TERMS.filter(t => t.unit === unit), sorts = SORTS.filter(s => s.unit === unit);
-  if (r < TYPE_RATE.num + TYPE_RATE.choice){
-    return Math.random() < 0.4 && sorts.length ? sortChoice(pick(sorts)) : termChoice(pick(terms));
+  if (g.k === '四字熟語' && r < 0.35){
+    const blank = g.w.slice(0, g.b) + '□' + g.w.slice(g.b + 1), ch = g.w[g.b];
+    return { unit:'goku', type:'write', answer:g.w, sub:`□に入る漢字：${ch}`,
+      text: `□に入る漢字を書いて、四字熟語を完成させましょう。<span class="item">${blank}</span><small class="mean">意味：${g.m}</small>`,
+      steps };
   }
-  return termRecall(pick(terms));
+  if (r < 0.65){
+    return { unit:'goku', type:'choice', answer:g.w, choices:makeChoices(g.w, same.map(x => x.w)),
+      text: `次の意味を表す${g.k}はどれですか。<span class="sent">${g.m}</span>`, steps };
+  }
+  if (r < 0.85){
+    return { unit:'goku', type:'choice', answer:g.m, choices:makeChoices(g.m, same.map(x => x.m)),
+      text: `次の${g.k}の意味として正しいものはどれですか。<span class="item">${g.w}</span>`,
+      steps: [steps[0], answerStep(g.m)] };
+  }
+  return { unit:'goku', type:'recall', answer:g.w,
+    text: `次の意味を表す${g.k}を思い出しましょう。<span class="sent">${g.m}</span>`, steps };
+}
+
+// 文法
+function bunpoQuestion(){
+  const r = Math.random();
+  if (r < 0.3){
+    const b = pick(BUNSETSU), parts = b.t.split('/');
+    return { unit:'bunpo', type:'num', suffix:'文節', answer:parts.length,
+      text: `次の文は、いくつの<b>文節</b>に分けられますか。<span class="sent">${b.t.replace(/\//g, '')}</span>`,
+      steps: [
+        { say: '<b>文節は、意味がわかる範囲で、できるだけ短く区切ったまとまり</b>です。「ネ」や「サ」を入れて、自然に区切れるところで分けます。' },
+        { say: `「ネ」を入れて区切ると：${parts.map((p, i) => i < parts.length - 1 ? p.replace(/。$/, '') + '<span class="ne">ネ</span>' : p).join(' ／ ')}` },
+        { say: '「〜て いる」「〜て みる」の「いる」「みる」は、それだけで1つの文節になります。' },
+        answerStep(`${parts.length} 文節`)
+      ] };
+  }
+  if (r < 0.5){
+    const b = pick(BUNSETSU.filter(x => x.s)), parts = b.t.split('/');
+    return { unit:'bunpo', type:'choice', answer:b.s, choices:makeChoices(b.s, parts),
+      text: `次の文の<b>主語</b>はどれですか。<span class="sent">${b.t.replace(/\//g, ' ')}</span>`,
+      steps: [
+        { say: '<b>主語は「何が（は）」「だれが（は）」にあたる文節</b>です。まず述語（文の最後の「どうする・どんなだ・何だ」）を見つけ、「何が？」と問いかけます。' },
+        ...(b.p ? [{ say: `述語は「${b.p}」。「何が（だれが）${b.p.replace(/。$/, '')}？」→「${b.s}」。` }] : []),
+        { say: '主語は「が」「は」だけでなく、「も」「こそ」などがつくこともあります。' },
+        answerStep(b.s)
+      ] };
+  }
+  if (r < 0.75){
+    const h = pick(HINSHI), names = Object.keys(HINSHI_RULE);
+    return { unit:'bunpo', type:'choice', answer:h.h, choices:makeChoices(h.h, names),
+      text: `線を引いた単語の<b>品詞</b>はどれですか。<span class="sent">${h.s.replace('{}', `<u class="tg">${h.w}</u>`)}</span>`,
+      steps: [
+        { say: '品詞は、<b>① 自立語か付属語か → ② 活用するか → ③ どんなはたらきか</b> の順に考えます。' },
+        { say: `<b>${h.h}</b>：${HINSHI_RULE[h.h]}` },
+        answerStep(`「${h.w}」は ${h.h}`)
+      ] };
+  }
+  const k = pick(KANKEI), names = Object.keys(KANKEI_RULE);
+  const marked = k.t.replace(k.a, `<u class="tg">${k.a}</u>`).replace(k.b, `<u class="tg">${k.b}</u>`);
+  return { unit:'bunpo', type:'choice', answer:k.r, choices:shuffle(names),
+    text: `線を引いた2つの文節の<b>関係</b>はどれですか。<span class="sent">${marked}</span>`,
+    steps: [
+      { say: `<b>${k.r}</b>：${KANKEI_RULE[k.r]}` },
+      { say: `「${k.a}」と「${k.b}」を当てはめて確かめよう。` },
+      answerStep(k.r)
+    ] };
+}
+
+// 文章題：1つの文章から1問
+function readingQuestion(){
+  const p = pick(PASSAGES), q = pick(p.qs);
+  return { unit:'reading', type:'choice', answer:q.a, choices:shuffle([q.a, ...q.x]),
+    passage: p, text: q.q,
+    steps: [
+      { say: q.why },
+      answerStep(q.a)
+    ] };
+}
+
+function genKokugo(unit){
+  if (unit === 'kanji') return Math.random() < 0.5 ? kanjiRead() : kanjiWrite();
+  if (unit === 'goku') return gokuQuestion();
+  if (unit === 'bunpo') return bunpoQuestion();
+  return readingQuestion();
 }
 
 const UNITS = [
-  { id:'plant',  mark:'🌱', name:'植物のなかま',       hint:'光合成・蒸散、花のつくり、植物の分類' },
-  { id:'matter', mark:'⚗️', name:'身のまわりの物質',   hint:'密度・濃度の計算、気体の性質、状態変化' },
-  { id:'force',  mark:'🔦', name:'光・音・力',         hint:'光の反射と屈折、音、ばね・圧力の計算' },
-  { id:'earth',  mark:'🌋', name:'大地の変化',         hint:'火山と岩石、地震の計算、地層と化石' },
-  { id:'mix',    mark:'∞', name:'まぜこぜ',            hint:'4つの分野がまざって出る（まぜると、どの考え方を使うか考える力がつく）', badge:'ふく習におすすめ' }
+  { id:'kanji',   mark:'漢', name:'漢字',                         hint:'文の中のことばを読む・書く（書きは手書きして、お手本とくらべる）' },
+  { id:'goku',    mark:'語', name:'語句（慣用句・ことわざ・四字熟語）', hint:'意味からことばを、ことばから意味を考える' },
+  { id:'bunpo',   mark:'文', name:'文法',                         hint:'文節・主語、品詞、文節どうしの関係' },
+  { id:'reading', mark:'読', name:'文章題（読解）',               hint:'短い文章を読んで、接続語・気持ち・筆者の考えを読みとる' },
+  { id:'mix',     mark:'∞', name:'まぜこぜ',                     hint:'4つがまざって出る（まぜると、どの考え方を使うか考える力がつく）', badge:'ふく習におすすめ' }
 ];
 
 function makeQuestions(unitId, n){
@@ -717,10 +800,10 @@ function makeQuestions(unitId, n){
   const units = unitId === 'mix' ? UNITS.filter(u => u.id !== 'mix').map(u => u.id) : [unitId];
   const seen = new Set();
   let guard = 0;
-  while (list.length < n && guard < n * 60){
+  while (list.length < n && guard < n * 80){
     guard++;
-    const q = genScience(pick(units));
-    const key = q.text.replace(/<[^>]*>/g, '');
+    const q = genKokugo(pick(units));
+    const key = q.type + q.text.replace(/<[^>]*>/g, '');
     if (seen.has(key)) continue;   // 同じ問題が重ならないように
     seen.add(key);
     list.push(q);
@@ -729,7 +812,7 @@ function makeQuestions(unitId, n){
 }
 
 /* ============================================================
-   2. 手書き数字の読みとり（数学ドリルと同じしくみ）
+   2. 手書き数字の読みとり（数学ドリルと同じしくみ。文節の数を答える問題で使う）
       数字の見本の形と、書いた線を「点の集まり」にしてくらべ、
       いちばん近い数字を選ぶ（$P Point-Cloud Recognizer という方法）。
       読みまちがえた字をキーで直すと、その形を見本に追加して覚える。
@@ -1050,7 +1133,7 @@ const app = document.getElementById('app');
 const state = { unit:null, total:10, qs:[], i:0, input:'', read:null, choice:null, locked:false, results:[], t0:0 };
 let workInk = null, ansInk = null, readTimer = null, nextTimer = null;
 const READ_WAIT = 900;   // ペンをはなしてから、答えを読みとるまでの時間（ミリ秒）
-const TYPE_TAG = { num: '計算', choice: 'えらぶ', recall: '思い出す' };
+const TYPE_TAG = { num: '数える', choice: 'えらぶ', recall: '思い出す', write: '書く' };
 
 function fmtTime(ms){
   const s = Math.round(ms / 1000);
@@ -1081,13 +1164,14 @@ function stepsHTML(q){
     </li>`).join('') + '</ol>';
 }
 function hintFor(q){
+  if (q.type === 'write') return '書けなかった字は、お手本を見ながら練習スペースに3回書いてから、つぎへ進もう。手を動かすと形が記憶に残りやすくなります。';
   if (q.type === 'recall') return '思い出そうとしたこと自体が、記憶を強くします。とき方を読んだら、目をとじて、もう一度言ってみよう。';
   if (q.type === 'choice') return 'まちがいは、のびるチャンス。どの言葉が手がかりになるか、とき方の<b>きまり</b>を読んでたしかめよう。';
-  return 'まちがいは、のびるチャンス。計算スペースに書いた式と、とき方を1行ずつくらべて、どこでずれたか見つけよう。';
+  return 'まちがいは、のびるチャンス。文に「ネ」を入れて、メモスペースに区切りを書きながら、とき方と1つずつくらべてみよう。';
 }
 // 「5 g/cm³」「光合成」のように、答えを表示用の文字にする
 function answerText(q, v){
-  if (v === null || v === undefined) return '思い出せなかった';
+  if (v === null || v === undefined) return q.type === 'write' ? '書けなかった' : '思い出せなかった';
   return q.type === 'num' ? numText(v) + (q.suffix ? ' ' + q.suffix : '') : String(v);
 }
 function explainHTML(q, mine){
@@ -1106,10 +1190,10 @@ function screenHome(){
   resetScreen('');
   app.innerHTML = `
     <div class="top-row">
-      <p class="title">中1理科ドリル</p>
-      <span class="switches"><a class="switch" href="index.html">数学</a><a class="switch" href="kokugo.html">国語</a></span>
+      <p class="title">中1国語ドリル</p>
+      <span class="switches"><a class="switch" href="index.html">数学</a><a class="switch" href="science.html">理科</a></span>
     </div>
-    <p class="lead">分野をえらぶと、毎回ちがう問題が出ます。計算・えらぶ・思い出す の3つの形がまざります。</p>
+    <p class="lead">分野をえらぶと、毎回ちがう問題が出ます。えらぶ・思い出す・書く の形がまざります。</p>
     <div class="menu">
       ${UNITS.map(u => `
         <button class="unit" data-unit="${u.id}">
@@ -1121,7 +1205,7 @@ function screenHome(){
       <span>問題数</span>
       ${[5, 10, 20].map(n => `<button data-n="${n}" aria-pressed="${state.total === n}">${n}問</button>`).join('')}
     </div>
-    <p class="tip">「思い出す」問題は、選択肢を見ずに、まず頭の中で答えを思い出してから「答えを見る」を押そう。自分の力で思い出す練習をすると、ただ読みかえすより、ずっと忘れにくくなります。</p>`;
+    <p class="tip">漢字の「書く」問題は、Apple Pencil でマスに書いてから「答えを見る」を押し、お手本とくらべて自分で ○× をつけよう。見るだけより、思い出しながら書くほうが、ずっと忘れにくくなります。</p>`;
 
   app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
     state.total = Number(b.dataset.n);
@@ -1151,6 +1235,22 @@ function resetAnswer(){
 
 // 答えるところ（問題の形によってちがう）
 function answerHTML(q){
+  if (q.type === 'write'){
+    return `
+      <div class="answer" id="answer">
+        <div class="head">
+          <span>ここに書こう（書けたら「答えを見る」）</span>
+          <span class="tools">
+            <button data-ans="undo">もどす</button>
+            <button data-ans="clear">けす</button>
+          </span>
+        </div>
+        <div class="write-row">
+          <div class="ink ans write-box card" id="ans"><span class="ph" id="ph">ここに書く</span></div>
+          <div class="model" id="model" hidden></div>
+        </div>
+      </div>`;
+  }
   if (q.type === 'choice'){
     return `
       <div class="answer" id="answer">
@@ -1164,7 +1264,7 @@ function answerHTML(q){
     return `
       <div class="answer" id="answer">
         <div class="recall-box" id="recallBox">
-          <p class="recall-say">答えを <b>頭の中で</b> 思い出そう。<br>計算スペースに書いてもいいよ。</p>
+          <p class="recall-say">答えを <b>頭の中で</b> 思い出そう。<br>メモスペースに書いてもいいよ。</p>
         </div>
       </div>`;
   }
@@ -1197,7 +1297,8 @@ function answerHTML(q){
 function screenQuiz(){
   resetScreen('is-quiz');
   const q = state.qs[state.i];
-  const goLabel = q.type === 'recall' ? '答えを見る' : '答え合わせ';
+  const selfCheck = q.type === 'recall' || q.type === 'write';
+  const goLabel = selfCheck ? '答えを見る' : '答え合わせ';
   app.innerHTML = `
     <div class="bar">
       <span class="num">${state.i + 1} / ${state.qs.length}</span>
@@ -1205,11 +1306,12 @@ function screenQuiz(){
     </div>
     <div class="dots" aria-hidden="true">${state.qs.map((_, k) => `<i class="${k < state.i ? 'done' : k === state.i ? 'now' : ''}"></i>`).join('')}</div>
     <div class="main">
-      <section class="left">
-        <div class="q word"><span class="tag">${TYPE_TAG[q.type]}</span>${q.text}</div>
+      <section class="left${q.passage ? ' has-passage' : ''}">
+        <div class="q word"><span class="tag">${q.passage ? '文章題' : TYPE_TAG[q.type]}</span>${q.text}</div>
+        ${q.passage ? `<div class="passage card"><h3>${q.passage.title}</h3><p>${q.passage.body}</p></div>` : ''}
         <div class="work card">
           <div class="head">
-            <span>${q.type === 'num' ? '計算スペース' : 'メモ・図をかくスペース'}</span>
+            <span>${q.type === 'write' ? '練習スペース' : 'メモスペース'}</span>
             <span class="tools">
               <button data-tool="pen" aria-pressed="true">ペン</button>
               <button data-tool="eraser" aria-pressed="false">消しゴム</button>
@@ -1227,7 +1329,7 @@ function screenQuiz(){
           <button class="self-ng" id="selfNg">× 思い出せなかった</button>
           <button class="self-ok" id="selfOk">○ 思い出せた</button>
         </div>
-        <button class="go" id="go" ${q.type === 'recall' ? '' : 'disabled'}>${goLabel}</button>
+        <button class="go" id="go" ${selfCheck ? '' : 'disabled'}>${goLabel}</button>
       </section>
     </div>`;
 
@@ -1243,6 +1345,15 @@ function screenQuiz(){
   app.querySelector('[data-work="clear"]').onclick = () => workInk.clear();
   document.getElementById('go').onclick = submit;
 
+  if (q.type === 'write'){
+    ansInk = createInk(document.getElementById('ans'), {
+      color, width: 6,
+      locked: () => state.locked,
+      onChange: () => { document.getElementById('ph').hidden = ansInk.strokes.length > 0; }
+    });
+    app.querySelector('[data-ans="undo"]').onclick = () => { if (!state.locked) ansInk.undo(); };
+    app.querySelector('[data-ans="clear"]').onclick = () => { if (!state.locked) ansInk.clear(); };
+  }
   if (q.type === 'num'){
     ansInk = createInk(document.getElementById('ans'), {
       color, width: 5,
@@ -1311,7 +1422,7 @@ function learnFromFix(){
 function submit(){
   if (state.locked) return;
   const q = state.qs[state.i];
-  if (q.type === 'recall') return revealRecall(q);
+  if (q.type === 'recall' || q.type === 'write') return revealRecall(q);
   let mine;
   if (q.type === 'choice'){
     if (state.choice === null) return;
@@ -1337,10 +1448,21 @@ function submit(){
 // 「思い出す」問題：答えを見せて、自分で ○× をつける
 function revealRecall(q){
   state.locked = true;
-  document.getElementById('recallBox').innerHTML = `
-    <p class="recall-label">答え</p>
-    <p class="recall-ans">${q.answer}</p>
-    <p class="recall-q">頭の中で思い出した答えと、合っていましたか？</p>`;
+  if (q.type === 'write'){
+    const m = document.getElementById('model');
+    m.innerHTML = `
+      <p class="recall-label">お手本</p>
+      <p class="model-ch">${q.answer}</p>
+      <p class="recall-q">${q.sub}</p>`;
+    m.hidden = false;
+    document.getElementById('selfOk').textContent = '○ 正しく書けた';
+    document.getElementById('selfNg').textContent = '× 書けなかった';
+  } else {
+    document.getElementById('recallBox').innerHTML = `
+      <p class="recall-label">答え</p>
+      <p class="recall-ans">${q.answer}</p>
+      <p class="recall-q">頭の中で思い出した答えと、合っていましたか？</p>`;
+  }
   document.getElementById('go').hidden = true;
   document.getElementById('self').hidden = false;
   document.getElementById('selfOk').onclick = () => finish(q, q.answer, true);
@@ -1355,7 +1477,8 @@ function finish(q, mine, ok){
   if (ok){
     // ほめるのは「頭のよさ」ではなく、やり方やがんばり
     const praise = q.type === 'recall' ? '自分の力で思い出せたね'
-      : q.type === 'num' && workInk.strokes.length ? '式を書いて考えられたね'
+      : q.type === 'write' ? '思い出しながら書けたね'
+      : q.passage ? '文章から手がかりを見つけられたね'
       : pick(['きまりを思い出して考えられたね', 'ていねいに読めたね', '集中できているね', 'その調子で続けよう']);
     go.textContent = '○ 正解！ ' + praise;
     go.classList.add('ok');
