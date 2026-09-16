@@ -363,6 +363,20 @@
     .tag-again{font-size:.82rem;}
     .again-note{font-size:.95rem;}
   }
+
+  /* ---- レベル（きほん／おうよう）5つのアプリで共通 ---- */
+  .tag-adv{
+    padding:3px 10px;border-radius:999px;background:var(--primary);color:#fff;
+    font-size:.72rem;font-weight:700;letter-spacing:.02em;
+  }
+  .lv-note{
+    margin:10px 0 0;padding:10px 13px;border-radius:12px;background:var(--ok-soft);
+    color:var(--ok);font-size:.82rem;font-weight:700;line-height:1.75;
+  }
+  @media (min-width:700px){
+    .tag-adv{font-size:.82rem;}
+    .lv-note{font-size:.95rem;}
+  }
 </style>
 </head>
 <body>
@@ -854,6 +868,229 @@ function wordEquation(){
     ] };
 }
 
+/* ============================================================
+   応用（おうよう）の問題
+     中1の範囲のまま、いくつかの手順を組み合わせて考える問題。
+     答えは、きほんと同じく必ず整数になるように作る。
+     とき方も、問題を作った同じ数から作る。
+   ============================================================ */
+
+// 符号つきの差を「＋2」「−1」のように書く
+function diffText(v){ return (v < 0 ? '−' : '＋') + Math.abs(v); }
+
+// 仮平均を使って平均を求める
+function advMean(){
+  const base = pick([50, 60, 70, 80]);
+  const d = [rndNz(-9, 9), rndNz(-9, 9), rndNz(-9, 9), rndNz(-9, 9)];
+  const r = ((d.reduce((a, b) => a + b, 0) % 5) + 5) % 5;
+  let last = (5 - r) % 5;
+  if (last === 0) last = 5;
+  if (Math.random() < 0.5 && last !== 5) last -= 5;
+  d.push(last);
+  const nums = d.map(x => base + x), sum = d.reduce((a, b) => a + b, 0), ans = base + sum / 5;
+  return { word: true, suffix: '点', answer: ans,
+    text: `5人のテストの点数は、次のとおりでした。平均点は何点ですか。<br><span class="num">${nums.join('、')}</span>`,
+    steps: [
+      { say: '<b>平均 ＝ 合計 ÷ 個数</b>。ただし大きい数をそのままたすのは大変なので、<b>基準（仮平均）を決めて、そこからの差で計算する</b>と速く、まちがいも減ります。' },
+      { say: `きりのよい <b>${base}点</b> を基準（仮平均）にして、それぞれが基準より何点多いか（少ないか）を書き出します。`,
+        math: nums.map((v, i) => `${v} → ${diffText(d[i])}`) },
+      { say: '<b>差の合計</b>を出します。', math: d.map(diffText).join(' ') + ` ＝ ${diffText(sum)}` },
+      { say: '<b>差の平均</b>を出します（差の合計 ÷ 5）。', math: `${numText(sum)} ÷ 5 ＝ ${numText(sum / 5)}` },
+      { say: '<b>基準 ＋ 差の平均</b> が、もとの平均です。', math: `${base} ＋ (${numText(sum / 5)}) ＝ ${ans}` },
+      answerStep(`${ans} 点`)
+    ] };
+}
+
+// 四則の混じった長い式
+function advLong(){
+  const a = rndNz(-12, 12), b = pick([2, 3, 4, -2, -3, -4]), c = rndNz(-4, 4), n = pick([2, 2, 3]);
+  const e = rndNz(-6, 6), q = rndNz(-6, 6);
+  const cn = Math.pow(c, n), mul = b * cn, div = q, v = a - mul + div;
+  const text = `${numText(a)} － ${signed(b)} × ${signed(c)}${sup(n)} ＋ ${signed(e * q)} ÷ ${signed(e)}`;
+  return { answer: v, text, steps: [
+    { say: '<b>計算の順番は ① 累乗・かっこの中 → ② かけ算・わり算 → ③ たし算・ひき算</b>。先に順番を決めてから計算します。' },
+    { say: `まず累乗。<b>${signed(c)}${sup(n)} は ${numText(c)} を ${n} 回かける</b>という意味です。${signNote(Array(n).fill(c))}`,
+      math: `${signed(c)}${sup(n)} ＝ ${numText(cn)}` },
+    { say: `つぎに かけ算。${signNote([b, cn])}`, math: `${signed(b)} × ${parenN(cn)} ＝ ${numText(mul)}` },
+    { say: `つぎに わり算。${signNote([e * q, e])}`, math: `${signed(e * q)} ÷ ${signed(e)} ＝ ${numText(div)}` },
+    { say: '残ったたし算・ひき算を、左から順に計算します。<b>ひき算は、ひく数の符号を変えてたし算に直す</b>とまちがえにくいです。',
+      math: [`${numText(a)}${tail(-mul)}${tail(div)}`, `＝ ${numText(a - mul)}${tail(div)}`, `＝ ${numText(v)}`] },
+    answerStep(`${numText(v)}`)
+  ] };
+}
+
+// 規則性を式にする
+function advRule(){
+  const kind = pick(['square', 'triangle', 'dot']);
+  const n = pick([10, 12, 15, 20, 25, 30]);
+  // n0 … 最初の例が「n ＝ いくつ」のときか（碁石は1辺2個から始まる）
+  const SET = {
+    square:   { unit:'本', a:3, b:1,  n0:1, first:[4, 7, 10], say:'正方形を横に1つならべると4本、2つで7本、3つで10本' },
+    triangle: { unit:'本', a:2, b:1,  n0:1, first:[3, 5, 7],  say:'三角形を横に1つならべると3本、2つで5本、3つで7本' },
+    dot:      { unit:'個', a:4, b:-4, n0:2, first:[4, 8, 12], say:'1辺に2個の正方形の形にならべると4個、1辺3個で8個、1辺4個で12個' }
+  };
+  const s = SET[kind], N = kind === 'dot' ? n : n, ans = s.a * N + s.b;
+  const q = kind === 'dot'
+    ? `碁石を、正方形のふちにそってならべます。${s.say}です。<b>1辺に ${N} 個</b>ならべるとき、碁石は全部で何個必要ですか。`
+    : `マッチ棒で、同じ形を横にならべていきます。${s.say}です。<b>${N} 個</b>ならべるとき、マッチ棒は何本必要ですか。`;
+  return { word: true, suffix: s.unit, answer: ans,
+    text: `${q}`,
+    steps: [
+      { say: '<b>まず、いくつずつ増えているかを調べます</b>。ならべる数が1つ増えるごとに、いくつ増えるかを見ます。',
+        math: `${s.first[0]} → ${s.first[1]} → ${s.first[2]}（${diffText(s.a)} ずつ増える）` },
+      { say: `<b>増える数が、n にかける数</b>になります。ここでは ${s.a} ずつ増えるので <b>${s.a}n</b>。`,
+        math: `n ＝ ${s.n0} のとき ${s.a} × ${s.n0} ＝ ${s.a * s.n0}` },
+      { say: `n ＝ ${s.n0} のときの本当の数は ${s.first[0]}${s.unit} なので、<b>${s.a}n との差 ${diffText(s.b)}</b> をつけ足します。これで式ができました。`,
+        math: `${s.a}n${tail(s.b)}` },
+      { say: `式の n に ${N} を入れて計算します。`, math: `${s.a} × ${N}${tail(s.b)} ＝ ${s.a * N}${tail(s.b)} ＝ ${ans}` },
+      answerStep(`${ans} ${s.unit}`)
+    ] };
+}
+
+// 式を簡単にしてから代入する
+function advDist(){
+  const x = rndNz(-6, 6), a = pick([2, 3, 4, -2, -3]), b = pick([2, 3, 4]), c = rndNz(-9, 9), d = pick([2, 3, 4, -2, -3]), e = rndNz(-9, 9);
+  const cx = a * b - d, cn = a * c - d * e, v = cx * x + cn;
+  const X = parenN(x);
+  const part2 = (d < 0 ? ' ＋ ' + Math.abs(d) : ' － ' + d) + `(x${tail(e)})`;
+  return { answer: v,
+    text: `<small>x ＝ ${numText(x)} のとき</small>${numText(a)}(${b}x${tail(c)})${part2}`,
+    steps: [
+      { say: '<b>代入する前に、式を簡単にする</b>と計算がぐっと楽になり、まちがいも減ります。' },
+      { say: '<b>かっこの前の数を、かっこの中のすべての項にかけます</b>（分配法則）。うしろのかっこは、前が「−」なので<b>符号が変わる</b>ことに注意。',
+        math: [`${numText(a)} × ${b}x ＝ ${term(a * b, 'x')}`, `${numText(a)} × ${parenN(c)} ＝ ${numText(a * c)}`,
+               `${numText(-d)} × x ＝ ${term(-d, 'x')}`, `${numText(-d)} × ${parenN(e)} ＝ ${numText(-d * e)}`] },
+      { say: '<b>同じ文字どうし、数どうしをまとめます</b>（同類項をまとめる）。',
+        math: `${term(a * b, 'x')}${tailTerm(-d, 'x')}${tail(a * c)}${tail(-d * e)} ＝ ${term(cx, 'x')}${cn ? tail(cn) : ''}` },
+      { say: `簡単にした式の x に ${numText(x)} を入れます。` + (x < 0 ? '<b>負の数を入れるときは、かっこ（ ）をつけます</b>。' : ''),
+        math: `${times(cx, X)}${cn ? tail(cn) : ''} ＝ ${numText(cx * x)}${cn ? tail(cn) : ''} ＝ ${numText(v)}` },
+      answerStep(`${numText(v)}`)
+    ] };
+}
+
+// 方程式の文章題（式を立てるところから）
+function advEqWord(){
+  const kind = pick(['kabusoku', 'oikake', 'nenrei']);
+  if (kind === 'kabusoku'){
+    const p = rnd(3, 6), r1 = rnd(2, 9), r2 = rnd(2, 9), x = r1 + r2, total = p * x + r1;
+    return { word: true, suffix: '人', answer: x, prefix: 'x ＝',
+      text: `あめを子どもに配ります。1人に ${p} 個ずつ配ると ${r1} 個あまり、1人に ${p + 1} 個ずつ配ると ${r2} 個たりません。子どもの人数を求めましょう。`,
+      steps: [
+        { say: '<b>求めたいものを x とおきます</b>。ここでは<b>子どもの人数を x 人</b>とします。' },
+        { say: '<b>どちらの配り方でも、あめの数は同じ</b>。これが等式を作る手がかりです。あめの数を2通りで表します。',
+          math: [`${p} 個ずつ：${p}x ＋ ${r1}`, `${p + 1} 個ずつ：${p + 1}x － ${r2}`] },
+        { say: 'あめの数が等しいので、＝ で結びます。', math: `${p}x ＋ ${r1} ＝ ${p + 1}x － ${r2}` },
+        { say: '<b>x をふくむ項は左、数だけの項は右</b>に移項します（移項すると符号が変わります）。',
+          math: [`${p}x － ${p + 1}x ＝ ${numText(-r2)} － ${r1}`, `${term(-1, 'x')} ＝ ${numText(-x)}`] },
+        { say: '両方の辺を −1 でわります。', math: `x ＝ ${x}` },
+        { say: `たしかめ：${p} 個ずつなら ${p} × ${x} ＋ ${r1} ＝ ${total} 個、${p + 1} 個ずつなら ${p + 1} × ${x} － ${r2} ＝ ${total} 個。どちらも同じになりました。` },
+        answerStep(`${x} 人`)
+      ] };
+  }
+  if (kind === 'oikake'){
+    const T = pick([[60, 100, 8, 12], [50, 80, 9, 15], [60, 90, 10, 20], [80, 100, 6, 24], [70, 105, 8, 16]]);
+    const [a, b, t, y] = T;
+    return { word: true, suffix: '分後', answer: y, prefix: 'x ＝',
+      text: `弟が分速 ${a} m で家を出発しました。その ${t} 分後に、兄が分速 ${b} m で同じ道を追いかけました。兄は出発してから何分後に弟に追いつきますか。`,
+      steps: [
+        { say: '<b>求めたいものを x とおきます</b>。ここでは<b>兄が出発してから追いつくまでを x 分</b>とします。' },
+        { say: '<b>追いついたとき、2人が進んだ道のりは同じ</b>。これが等式を作る手がかりです。<b>道のり ＝ 速さ × 時間</b>で表します。',
+          math: [`兄：${b} × x`, `弟：${a} × (x ＋ ${t})　← ${t} 分早く出ているので時間が長い`] },
+        { say: '道のりが等しいので、＝ で結びます。', math: `${b}x ＝ ${a}(x ＋ ${t})` },
+        { say: '右の辺のかっこをはずします（分配法則）。', math: `${b}x ＝ ${a}x ＋ ${a * t}` },
+        { say: '<b>x をふくむ項を左に移項</b>して、まとめます。', math: [`${b}x － ${a}x ＝ ${a * t}`, `${b - a}x ＝ ${a * t}`] },
+        { say: `両方の辺を ${b - a} でわります。`, math: `x ＝ ${a * t} ÷ ${b - a} ＝ ${y}` },
+        { say: `たしかめ：兄は ${b} × ${y} ＝ ${b * y} m、弟は ${a} × (${y} ＋ ${t}) ＝ ${a * (y + t)} m。同じ道のりになりました。` },
+        answerStep(`${y} 分後`)
+      ] };
+  }
+  let y, k, c, f, guard = 0;
+  do {
+    y = rnd(2, 15); k = pick([2, 3]); c = rnd(8, 14); f = k * (c + y) - y;
+    guard++;
+  } while ((f < 28 || f > 55) && guard < 50);
+  return { word: true, suffix: '年後', answer: y, prefix: 'x ＝',
+    text: `今、父は ${f} 歳、子どもは ${c} 歳です。父の年れいが子どもの年れいの ${k} 倍になるのは、何年後ですか。`,
+    steps: [
+      { say: '<b>求めたいものを x とおきます</b>。ここでは<b>x 年後</b>とします。' },
+      { say: '<b>x 年後には、2人とも同じだけ年をとる</b>のがポイントです。x 年後の年れいを表します。',
+        math: [`父：${f} ＋ x`, `子ども：${c} ＋ x`] },
+      { say: `「父が子どもの ${k} 倍」を式にします。<b>「〜の${k}倍」は、子どものほうに ${k} をかける</b>ことに注意。`,
+        math: `${f} ＋ x ＝ ${k}(${c} ＋ x)` },
+      { say: '右の辺のかっこをはずします。', math: `${f} ＋ x ＝ ${k}x ＋ ${k * c}` },
+      { say: '<b>x を左、数を右に移項</b>してまとめます。', math: [`x － ${k}x ＝ ${k * c} － ${f}`, `${term(1 - k, 'x')} ＝ ${k * c - f}`] },
+      { say: `両方の辺を ${numText(1 - k)} でわります。`, math: `x ＝ ${numText(k * c - f)} ÷ ${parenN(1 - k)} ＝ ${y}` },
+      { say: `たしかめ：${y} 年後、父は ${f + y} 歳、子どもは ${c + y} 歳。${c + y} × ${k} ＝ ${(c + y) * k} で、たしかに ${k} 倍です。` },
+      answerStep(`${y} 年後`)
+    ] };
+}
+
+// 比例式
+function advRatio(){
+  const gcd = (m, n) => n ? gcd(n, m % n) : m;
+  let d, c, guard = 0;
+  do { d = rnd(2, 9); c = rnd(2, 9); guard++; } while (gcd(c, d) !== 1 && guard < 60);   // これ以上約分できない比にする
+  const k = rnd(2, 6), a = d * k, x = k * c;
+  return { answer: x, prefix: 'x ＝',
+    text: `x : ${a} ＝ ${c} : ${d}`,
+    steps: [
+      { say: '<b>a : b ＝ c : d のとき、外側どうしの積と、内側どうしの積は等しくなります（a × d ＝ b × c）</b>。' },
+      { say: '外側は x と ' + d + '、内側は ' + a + ' と ' + c + ' です。積が等しいので、式にします。',
+        math: `x × ${d} ＝ ${a} × ${c}` },
+      { say: '右の辺を計算します。', math: `${d}x ＝ ${a * c}` },
+      { say: `両方の辺を ${d} でわります。`, math: `x ＝ ${a * c} ÷ ${d} ＝ ${x}` },
+      { say: `たしかめ：${x} : ${a} は、どちらも ${k} でわると ${c} : ${d} になります。` },
+      answerStep(`x ＝ ${x}`)
+    ] };
+}
+
+const ADV = {
+  addsub: [advMean],
+  muldiv: [advLong],
+  expr:   [advRule, advDist],
+  eq:     [advEqWord, advRatio]
+};
+const ADV_LABEL = {
+  advMean:  '応用：平均（仮平均の工夫）',
+  advLong:  '応用：四則の混じった計算',
+  advRule:  '応用：規則性を式にする',
+  advDist:  '応用：式を簡単にして代入',
+  advEqWord:'応用：方程式の文章題',
+  advRatio: '応用：比例式'
+};
+
+/* ---- レベル（きほん／おうよう）。5つのアプリで共通 ----
+   おうよう は、中1の範囲のまま「手順を組み合わせて考える」問題を出す。
+   答えが必ず整数になるきまりは、おうよう でも変わらない。 */
+const LEVEL_KEY = 'study-drill-level';   // 5教科で共通（教科をまたいでも同じレベルで始められる）
+function getLevel(){
+  try { return localStorage.getItem(LEVEL_KEY) === 'adv' ? 'adv' : 'basic'; } catch (e) { return 'basic'; }
+}
+function setLevel(v){ try { localStorage.setItem(LEVEL_KEY, v); } catch (e) {} }
+// 応用の問題を1つ作って、項目（item）と名前（label）をつける
+function makeAdv(unit){
+  const fs = ADV[unit.id] || [];
+  if (!fs.length) return makeOne(unit);      // 応用を用意していない分野は、きほんを出す
+  return advQuestion(pick(fs), unit.id);
+}
+function advQuestion(f, unitId){
+  const q = f();
+  q.unit = unitId;
+  q.adv = true;
+  q.item = 'a:' + f.name;
+  q.label = ADV_LABEL[f.name] || f.name;
+  return q;
+}
+// 応用の問題を、名前から引けるようにする（復習で作りなおすときに使う）
+const ADV_ALL = {};
+Object.keys(ADV).forEach(u => ADV[u].forEach(f => { ADV_ALL[f.name] = u; }));
+function regenAdv(key){
+  const name = key.slice(2), u = ADV_ALL[name];
+  if (!u) return null;
+  const f = (ADV[u] || []).filter(x => x.name === name)[0];
+  return f ? advQuestion(f, u) : null;
+}
+
 const UNITS = [
   { id:'addsub', mark:'±', name:'正負の数（たし算・ひき算）', hint:'(−7) ＋ (＋3) など', gen:genAddSub },
   { id:'muldiv', mark:'×', name:'正負の数（かけ算・わり算）', hint:'累乗・四則の混じった式も', gen:genMulDiv },
@@ -885,6 +1122,7 @@ function makeOne(unit){
 }
 // 項目のキーから、同じきまりの新しい問題を作りなおす（復習・もう一度で使う）
 function regenFor(key){
+  if (key.slice(0, 2) === 'a:') return regenAdv(key);   // 応用の問題は、応用のまま作りなおす
   const unit = UNITS.find(x => x.id === key.split(':')[0]);
   if (!unit || !unit.gen) return null;
   for (let i = 0; i < 80; i++){
@@ -894,14 +1132,14 @@ function regenFor(key){
   return makeOne(unit);                 // 出なければ、その単元の問題でよしとする
 }
 
-function makeQuestions(unitId, n){
+function makeQuestions(unitId, n, lv){
   const list = [];
   const units = unitId === 'mix' ? UNITS.filter(u => u.gen) : [UNITS.find(u => u.id === unitId)];
   const seen = new Set();
   let guard = 0;
   while (list.length < n && guard < n * 40){
     guard++;
-    const q = makeOne(pick(units));
+    const q = lv === 'adv' ? makeAdv(pick(units)) : makeOne(pick(units));
     if (seen.has(q.text)) continue;   // 同じ式が続かないように
     seen.add(q.text);
     list.push(q);
@@ -1025,7 +1263,8 @@ const UNIT_KINDS = {
   expr:   ['linear', 'square', 'double', 'word'],
   eq:     ['basic', 'both', 'paren', 'word']
 };
-const ALL_ITEMS = [].concat(...Object.keys(UNIT_KINDS).map(u => UNIT_KINDS[u].map(k => u + ':' + k)));
+const ALL_ITEMS = [].concat(...Object.keys(UNIT_KINDS).map(u => UNIT_KINDS[u].map(k => u + ':' + k)))
+  .concat(Object.keys(ADV_ALL).map(n => 'a:' + n));
 
 /* ============================================================
    1-3. 学習の記録と送信（5つのアプリで共通）
@@ -1436,7 +1675,7 @@ function createInk(wrap, opt){
    4. 画面の状態
    ============================================================ */
 const app = document.getElementById('app');
-const state = { unit:null, mode:'normal', total:10, qs:[], i:0, input:'', read:null, locked:false, results:[], t0:0, retried:new Set(), grad:0 };
+const state = { unit:null, mode:'normal', level:getLevel(), total:10, qs:[], i:0, input:'', read:null, locked:false, results:[], t0:0, retried:new Set(), grad:0 };
 let workInk = null, ansInk = null, readTimer = null, nextTimer = null;
 const READ_WAIT = 900;   // ペンをはなしてから、答えを読みとるまでの時間（ミリ秒）
 
@@ -1508,6 +1747,12 @@ function screenHome(){
         </button>`).join('')}
     </div>
     <div class="count">
+      <span>レベル</span>
+      <button data-lv="basic" aria-pressed="${state.level !== 'adv'}">きほん</button>
+      <button data-lv="adv" aria-pressed="${state.level === 'adv'}">おうよう</button>
+    </div>
+    ${state.level === 'adv' ? '<p class="lv-note">おうよう：中1の範囲のまま、<b>いくつかの手順を組み合わせて考える問題</b>が出ます（平均の工夫、規則性、方程式の文章題など）。むずかしいと感じたら、きほんにもどって大丈夫です。</p>' : ''}
+    <div class="count">
       <span>問題数</span>
       ${[5, 10, 20].map(n => `<button data-n="${n}" aria-pressed="${state.total === n}">${n}問</button>`).join('')}
     </div>
@@ -1517,9 +1762,14 @@ function screenHome(){
     state.total = Number(b.dataset.n);
     screenHome();
   });
+  app.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => {
+    state.level = b.dataset.lv;
+    setLevel(state.level);
+    screenHome();
+  });
   app.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => {
     state.unit = b.dataset.unit;
-    startQuiz(makeQuestions(state.unit, state.total));
+    startQuiz(makeQuestions(state.unit, state.total, state.level));
   });
   const rv = document.getElementById('go-review');
   if (rv) rv.onclick = () => {
@@ -1548,7 +1798,7 @@ function screenQuiz(){
   const q = state.qs[state.i];
   app.innerHTML = `
     <div class="bar">
-      <span class="num">${state.i + 1} / ${state.qs.length}${q.again ? ' <span class="tag-again">もう一度</span>' : q.review ? ' <span class="tag-again">復習</span>' : ''}</span>
+      <span class="num">${state.i + 1} / ${state.qs.length}${q.again ? ' <span class="tag-again">もう一度</span>' : q.review ? ' <span class="tag-again">復習</span>' : ''}${q.adv ? ' <span class="tag-adv">応用</span>' : ''}</span>
       <button class="quit">やめる</button>
     </div>
     <div class="dots" aria-hidden="true">${state.qs.map((_, k) => `<i class="${k < state.i ? 'done' : k === state.i ? 'now' : ''}"></i>`).join('')}</div>
@@ -1805,7 +2055,7 @@ function screenResult(){
   const rv = document.getElementById('go-review');
   if (rv) rv.onclick = () => { state.unit = 'review'; startQuiz(makeReviewQuestions(state.total), 'review'); };
   const ag = document.getElementById('again');
-  if (ag) ag.onclick = () => startQuiz(makeQuestions(state.unit, state.total));
+  if (ag) ag.onclick = () => startQuiz(makeQuestions(state.unit, state.total, state.level));
   document.getElementById('home').onclick = screenHome;
 }
 
