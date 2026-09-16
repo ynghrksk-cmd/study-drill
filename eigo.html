@@ -1472,6 +1472,110 @@ function boxStateHTML(grad){
   return `<p class="box-state">${g}復習ボックス：<b>${n}問</b>／つぎの復習は <b>${dayText(next)}</b>。<br>同じ日にくり返すより、<b>日をあけて思い出す</b>ほうが忘れにくくなります。</p>`;
 }
 
+const SUBJECT = 'eigo';                        // 教科のID（記録につける）
+const LOG_KEY = 'study-drill-log-eigo';   // 学習の記録（この端末だけ）
+
+// この教科にある項目（進み具合の分母になる）
+const ALL_ITEMS = [
+  ...WORDS.map(w => 'word:' + w.w),
+  ...BUNPO.map(f => 'g:' + f.name),
+  ...TALK.map((t, i) => 'talk:' + i),
+  ...PHRASE.map((p, i) => 'phrase:' + i),
+  ...DAYS.concat(MONTHS).map(w => 'spell:' + w.e),
+  ...[].concat(...PASSAGES.map(p => p.qs.map((q, i) => `read:${p.title}:${i}`))),
+  ...CALC.hyogen.map(f => 'num:' + f.name)
+];
+
+/* ============================================================
+   1-3. 学習の記録と送信（5つのアプリで共通）
+      子どもの「がんばりの記録」（kiroku.html）と保護者ページ（oya.html）で使う。
+        ・記録はこの端末（localStorage）に残す。ドリル本体はこれまでどおりオフラインで動く。
+        ・送信先（Google Apps Script の URL）を設定したときだけ、記録を送る。
+          設定していなければ、送るものをためておくだけで、動きは何も変わらない。
+        ・送信は勉強のじゃまをしない（失敗しても、次に成功したときにまとめて送る）。
+      記録するのは学習の中身だけ。名前などの個人情報は入れない。
+   ============================================================ */
+const LOG_VER = 1;
+let log = null;
+function getLog(){
+  if (!log){
+    try { log = JSON.parse(localStorage.getItem(LOG_KEY)); } catch (e) { log = null; }
+    if (!log || typeof log !== 'object') log = {};
+  }
+  if (!Array.isArray(log.ses)) log.ses = [];    // 1回ごと：[日, 分野, 復習か, 出題数, 正解数, 秒]
+  if (!log.item || typeof log.item !== 'object') log.item = {};   // 項目ごと：[出題数, 正解数, まちがい, 最後の日, 卒業した日, 分野]
+  if (!log.label || typeof log.label !== 'object') log.label = {};
+  log.v = LOG_VER;
+  log.total = ALL_ITEMS.length;                 // この教科の項目の総数（進み具合の分母）
+  return log;
+}
+function saveLog(){ try { localStorage.setItem(LOG_KEY, JSON.stringify(getLog())); } catch (e) {} }
+
+// 1問ごとの記録（grad は、この正解で復習ボックスを卒業したかどうか）
+function logQuestion(q, ok, grad){
+  if (!q.item) return;
+  const L = getLog(), t = today();
+  const r = L.item[q.item] || (L.item[q.item] = [0, 0, 0, 0, 0, '']);
+  r[0]++;
+  if (ok) r[1]++; else r[2]++;
+  r[3] = t;
+  if (grad) r[4] = t;
+  r[5] = q.unit || r[5] || '';
+  L.label[q.item] = q.label || q.item;
+  saveLog();
+  queueRow(['i', SUBJECT, q.item, L.label[q.item], r[0], r[1], r[2], r[3], r[4], r[5]]);
+}
+// 1回ぶんの記録
+function logSession(unit, mode, n, right, ms){
+  const L = getLog(), t = today(), sec = Math.round(ms / 1000), rv = mode === 'review' ? 1 : 0;
+  L.ses.push([t, unit, rv, n, right, sec]);
+  saveLog();
+  queueRow(['s', SUBJECT, t, unit, rv, n, right, sec]);
+  queueRow(['t', SUBJECT, ALL_ITEMS.length]);
+  syncFlush();
+}
+
+/* ---- 送信（設定したときだけ動く）---- */
+const SYNC_KEY = 'study-drill-sync';   // 送信先の設定と、まだ送れていない記録（5教科で共通）
+function getSync(){
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(SYNC_KEY)); } catch (e) { s = null; }
+  if (!s || typeof s !== 'object') s = {};
+  if (!Array.isArray(s.q)) s.q = [];
+  return s;
+}
+function saveSync(s){ try { localStorage.setItem(SYNC_KEY, JSON.stringify(s)); } catch (e) {} }
+// 送るものをためる。項目の記録は「最新の状態」だけでよいので、同じ項目の古い行は消す
+function queueRow(row){
+  const s = getSync();
+  if (row[0] === 'i' || row[0] === 't'){
+    s.q = s.q.filter(r => !(r[0] === row[0] && r[1] === row[1] && r[2] === row[2]));
+  }
+  s.q.push(row);
+  if (s.q.length > 4000) s.q = s.q.slice(-4000);   // 増えすぎたら古いものから捨てる
+  saveSync(s);
+}
+// たまっている記録を送る。勉強の動きは止めない（失敗しても、次のときにまた送る）
+function syncFlush(){
+  const s = getSync();
+  if (!s.url || !s.q.length) return;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  const rows = s.q.slice(0, 500);
+  const body = JSON.stringify({ k: s.key || '', name: s.name || '', rows });
+  const done = () => {
+    const t = getSync();
+    t.q = t.q.slice(rows.length);
+    t.at = Date.now();
+    saveSync(t);
+  };
+  try {
+    // ふつうに送って、返事が読めたら成功。読めないとき（CORS）は no-cors でもう一度送る
+    fetch(s.url, { method: 'POST', body })
+      .then(r => { if (r.ok) done(); })
+      .catch(() => fetch(s.url, { method: 'POST', mode: 'no-cors', body }).then(done).catch(() => {}));
+  } catch (e) {}
+}
+
 /* ============================================================
    2. 手書き数字の読みとり（数学ドリルと同じしくみ。英語の数や時こくの問題で使う）
       数字の見本の形と、書いた線を「点の集まり」にしてくらべ、
@@ -1850,10 +1954,11 @@ function explainHTML(q, mine){
 /* ---- トップ画面 ---- */
 function screenHome(){
   resetScreen('');
+  syncFlush();   // たまっている記録があれば、ここで送る（設定していなければ何もしない）
   app.innerHTML = `
     <div class="top-row">
       <p class="title">中1英語ドリル</p>
-      <span class="switches"><a class="switch" href="index.html">数学</a><a class="switch" href="science.html">理科</a><a class="switch" href="kokugo.html">国語</a><a class="switch" href="shakai.html">社会</a></span>
+      <span class="switches"><a class="switch" href="index.html">数学</a><a class="switch" href="science.html">理科</a><a class="switch" href="kokugo.html">国語</a><a class="switch" href="shakai.html">社会</a><a class="switch" href="kiroku.html">がんばり</a></span>
     </div>
     <p class="lead">分野をえらぶと、毎回ちがう問題が出ます。えらぶ・思い出す・英語で書く・数字で答える の形がまざります。</p>
     ${reviewHomeHTML()}
@@ -2155,8 +2260,10 @@ function queueRetry(q){
 
 function finish(q, mine, ok){
   state.results.push({ q, mine, ok });
-  if (ok){ if (boxHit(q)) state.grad++; }
-  else { boxMiss(q); queueRetry(q); }
+  const grad = ok ? boxHit(q) : false;
+  if (grad) state.grad++;
+  if (!ok){ boxMiss(q); queueRetry(q); }
+  logQuestion(q, ok, grad);
   const go = document.getElementById('go');
   document.getElementById('self').hidden = true;
   go.hidden = false;
@@ -2236,6 +2343,7 @@ function screenResult(){
   const time = Date.now() - state.t0;
   const wrong = state.results.filter(r => !r.ok);
   const right = state.results.length - wrong.length;
+  if (state.results.length) logSession(state.unit, state.mode, state.results.length, right, time);
 
   app.innerHTML = `
     <div class="score">

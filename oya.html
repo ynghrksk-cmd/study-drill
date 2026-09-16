@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#F4F1EA">
+<title>学習の記録（保護者用）</title>
+<style>
+  /* 色の意味は5つのドリルと同じにそろえる
+     身についた＝こい青 / できている＝うすい青 / 復習中＝オレンジ / まだ＝グレー
+     赤と緑の組み合わせは使わない（色覚のタイプによって見分けにくいため） */
+  :root{
+    color-scheme:light;
+    --bg:#F4F1EA; --surface:#FFFDF9; --surface-2:#ECE7DC; --line:#DAD3C5;
+    --ink:#1E2833; --ink-2:#5A6472; --faint:#A39C8E;
+    --primary:#1E2833; --ok:#2463A8; --ok-soft:#E2ECF8; --ng:#B8570E; --ng-soft:#FAEBDC; --mark:#FFE27A;
+    --l1:#E8F0FA; --l2:#BCD5EE; --l3:#7FA9D6; --l4:#4A83BE; --l5:#2463A8;   /* 学習量の濃淡（うすい→こい） */
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  [hidden]{display:none!important;}
+  html,body{margin:0;}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:"BIZ UDPGothic","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",system-ui,sans-serif;
+    display:flex;justify-content:center;-webkit-text-size-adjust:100%;
+  }
+  #app{width:100%;max-width:560px;padding:18px 16px calc(28px + env(safe-area-inset-bottom));}
+  .num{font-family:"Helvetica Neue",Arial,sans-serif;font-variant-numeric:tabular-nums;}
+  button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer;}
+  button:focus-visible,input:focus-visible{outline:3px solid var(--ok);outline-offset:2px;}
+  a{color:var(--ok);}
+
+  .top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .top .btn{flex:none;margin-left:auto;}
+  .title{font-size:1.25rem;font-weight:800;letter-spacing:.04em;margin:4px 0 2px;}
+  .src{font-size:.76rem;color:var(--ink-2);line-height:1.6;}
+  .src b{color:var(--ink);}
+  .btn{
+    border:1px solid var(--line);border-radius:999px;padding:7px 15px;background:var(--surface);
+    font-size:.82rem;color:var(--ink-2);font-weight:600;
+  }
+  .btn.main{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .lead{color:var(--ink-2);font-size:.85rem;line-height:1.8;margin:10px 0 18px;}
+
+  h2{font-size:.86rem;color:var(--ink-2);font-weight:700;margin:24px 0 8px;letter-spacing:.02em;}
+  h2 span{font-weight:400;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(30,40,51,.05);}
+
+  /* まとめ（数字のタイル） */
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .tile{padding:14px 16px;}
+  .tile b{display:block;font-size:1.9rem;font-weight:800;line-height:1.1;letter-spacing:-.01em;}
+  .tile b u{text-decoration:none;font-size:.9rem;color:var(--ink-2);font-weight:700;margin-left:2px;}
+  .tile span{display:block;font-size:.76rem;color:var(--ink-2);margin-top:5px;line-height:1.5;}
+
+  /* 教科ごと */
+  .subj{padding:14px 16px;margin-bottom:10px;}
+  .subj-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+  .subj-h b{font-size:1.02rem;font-weight:700;}
+  .subj-h .rate{font-size:.82rem;color:var(--ink-2);}
+  .subj-h .rate em{font-style:normal;font-size:1.15rem;font-weight:700;color:var(--ink);margin-left:3px;}
+  .bar{display:flex;gap:2px;height:14px;margin:10px 0 0;border-radius:7px;overflow:hidden;background:var(--surface-2);}
+  .bar i{display:block;height:100%;}
+  .bar .s1{background:var(--l5);}
+  .bar .s2{background:var(--l3);}
+  .bar .s3{background:var(--ng);}
+  .bar .s4{background:var(--line);}
+  .keys{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:.76rem;color:var(--ink-2);}
+  .keys i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;}
+  .keys b{color:var(--ink);font-weight:700;}
+  .units{margin:12px 0 0;display:flex;flex-direction:column;gap:6px;}
+  .unit-row{display:grid;grid-template-columns:8.5em 1fr auto;align-items:center;gap:8px;font-size:.78rem;color:var(--ink-2);}
+  .unit-row .track{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;}
+  .unit-row .track i{display:block;height:100%;background:var(--l4);}
+  .unit-row .v{color:var(--ink);font-weight:700;}
+
+  /* 気をつけたい項目 */
+  .weak{display:flex;flex-direction:column;gap:8px;}
+  .weak-row{padding:10px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;}
+  .weak-row .nm{font-size:.92rem;font-weight:700;line-height:1.5;}
+  .weak-row .sb{font-size:.74rem;color:var(--ink-2);}
+  .weak-row .cnt{font-size:.78rem;color:var(--ng);font-weight:700;text-align:right;white-space:nowrap;}
+  .weak-row .track{grid-column:1 / -1;height:8px;border-radius:4px;background:var(--ng-soft);overflow:hidden;}
+  .weak-row .track i{display:block;height:100%;background:var(--ng);}
+
+  /* カレンダー */
+  .cal{padding:14px 12px;}
+  .cal-head,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-head span{text-align:center;font-size:.7rem;color:var(--ink-2);padding-bottom:4px;}
+  .cal-grid button{
+    aspect-ratio:1/1;border-radius:6px;background:var(--surface-2);
+    font-size:.68rem;color:var(--ink-2);display:grid;place-items:center;
+  }
+  .cal-grid button.v1{background:var(--l1);} .cal-grid button.v2{background:var(--l2);}
+  .cal-grid button.v3{background:var(--l3);color:#fff;} .cal-grid button.v4{background:var(--l4);color:#fff;}
+  .cal-grid button.v5{background:var(--l5);color:#fff;}
+  .cal-grid button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--primary);}
+  .cal-legend{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:.72rem;color:var(--ink-2);}
+  .cal-legend i{width:14px;height:14px;border-radius:4px;display:inline-block;}
+  .cal-detail{margin:10px 0 0;font-size:.82rem;color:var(--ink);line-height:1.7;min-height:1.7em;}
+  .cal-detail b{color:var(--ok);}
+
+  .note{
+    margin:10px 0 0;padding:12px 15px;border-radius:12px;background:var(--surface);
+    border:1px dashed var(--line);color:var(--ink-2);font-size:.82rem;line-height:1.9;
+  }
+  .note b{color:var(--ink);}
+  .empty{padding:22px 18px;text-align:center;color:var(--ink-2);font-size:.9rem;line-height:1.9;}
+
+  /* 設定 */
+  details.set{margin-top:26px;}
+  details.set summary{
+    list-style:none;cursor:pointer;padding:12px 15px;border-radius:12px;background:var(--surface);
+    border:1px solid var(--line);font-size:.86rem;font-weight:700;color:var(--ink-2);
+  }
+  details.set summary::-webkit-details-marker{display:none;}
+  .set-body{padding:14px 15px 4px;font-size:.84rem;color:var(--ink-2);line-height:1.8;}
+  .set-body label{display:block;margin:12px 0 4px;font-weight:700;color:var(--ink);font-size:.8rem;}
+  .set-body input{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+    font-size:.9rem;font-family:inherit;background:var(--surface);color:var(--ink);
+  }
+  .set-body .row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .msg{margin-top:10px;font-size:.82rem;font-weight:700;color:var(--ok);}
+  @media (min-width:700px){
+    #app{max-width:720px;padding:26px 24px;}
+    .title{font-size:1.5rem;}
+    .lead,.src{font-size:.95rem;}
+    .tiles{grid-template-columns:repeat(4,1fr);}
+    .tile b{font-size:2.1rem;}
+    .subj-h b{font-size:1.15rem;}
+    h2{font-size:.95rem;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ============================================================
+   学習の記録（保護者用）
+     5つのドリルが この端末（localStorage）に残した記録を読んで、まとめて見せる。
+     送信先（Google Apps Script）を設定していれば、そこからも読む。
+     読んだ記録はこの端末にも保存するので、あとからオフラインでも見られる。
+   ============================================================ */
+const SUBJECTS = [
+  { id:'math',    name:'数学', file:'index.html',   units:{ addsub:'正負の数（たし算・ひき算）', muldiv:'正負の数（かけ算・わり算）', expr:'文字と式', eq:'一次方程式', mix:'まぜこぜ', review:'復習' } },
+  { id:'science', name:'理科', file:'science.html', units:{ plant:'植物のなかま', matter:'身のまわりの物質', force:'光・音・力', earth:'大地の変化', mix:'まぜこぜ', review:'復習' } },
+  { id:'kokugo',  name:'国語', file:'kokugo.html',  units:{ kanji:'漢字', goku:'語句', bunpo:'文法', reading:'文章題', mix:'まぜこぜ', review:'復習' } },
+  { id:'shakai',  name:'社会', file:'shakai.html',  units:{ sekai:'世界と日本のすがた', kurashi:'世界の人々のくらし', kodai:'古代までの日本', chusei:'武士の世の中', mix:'まぜこぜ', review:'復習' } },
+  { id:'eigo',    name:'英語', file:'eigo.html',    units:{ word:'単語', bunpo:'文法', hyogen:'会話表現と数', reading:'英文を読む', mix:'まぜこぜ', review:'復習' } }
+];
+const SYNC_KEY = 'study-drill-sync';      // 送信先の設定（5つのドリルと共通）
+const CLOUD_KEY = 'study-drill-cloud';    // 取りこんだ記録の控え（この端末に保存しておく）
+const DAY = 86400000;
+
+function today(){ const d = new Date(); d.setHours(0, 0, 0, 0); return Math.round(d.getTime() / DAY); }
+function dayDate(n){ const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + (n - today())); return d; }
+function dayLabel(n){ const d = dayDate(n); return (d.getMonth() + 1) + '月' + d.getDate() + '日'; }
+function pct(a, b){ return b ? Math.round(a / b * 100) : 0; }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]); }
+function getSync(){
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(SYNC_KEY)); } catch (e) {}
+  if (!s || typeof s !== 'object') s = {};
+  if (!Array.isArray(s.q)) s.q = [];
+  return s;
+}
+function saveSync(s){ try { localStorage.setItem(SYNC_KEY, JSON.stringify(s)); } catch (e) {} }
+
+/* ---- 記録を読む ----
+   内部の形：{ ses:[[日, 教科, 分野, 復習か, 出題, 正解, 秒]], item:[[教科, 項目, ラベル, 出題, 正解, まちがい, 最後の日, 卒業日, 分野]], total:{教科:総項目数} } */
+function readLocal(){
+  const out = { ses: [], item: [], total: {}, queue: getSync().q.length };
+  for (const s of SUBJECTS){
+    let L = null;
+    try { L = JSON.parse(localStorage.getItem('study-drill-log-' + s.id)); } catch (e) {}
+    if (!L) continue;
+    (L.ses || []).forEach(r => out.ses.push([r[0], s.id, r[1], r[2], r[3], r[4], r[5]]));
+    const labels = L.label || {};
+    Object.keys(L.item || {}).forEach(k => {
+      const v = L.item[k];
+      out.item.push([s.id, k, labels[k] || k, v[0] || 0, v[1] || 0, v[2] || 0, v[3] || 0, v[4] || 0, v[5] || '']);
+    });
+    if (L.total) out.total[s.id] = L.total;
+  }
+  return out;
+}
+function readCloudCache(){
+  try { return JSON.parse(localStorage.getItem(CLOUD_KEY)); } catch (e) { return null; }
+}
+function cloudUrl(extra){
+  const s = getSync();
+  if (!s.url) return null;
+  return s.url + (s.url.indexOf('?') >= 0 ? '&' : '?') + 'k=' + encodeURIComponent(s.key || '') + (extra || '');
+}
+// クラウドから読む。ふつうに読めないとき（CORS）は、script タグで読みこむ方法（JSONP）にする
+function fetchCloud(){
+  const url = cloudUrl('');
+  if (!url) return Promise.resolve(null);
+  return fetch(url).then(r => r.ok ? r.json() : null).catch(() => null).then(j => {
+    if (j && j.ok) return j;
+    return new Promise(res => {
+      const name = '__drill' + Date.now();
+      const sc = document.createElement('script');
+      const clean = () => { try { delete window[name]; } catch (e) { window[name] = undefined; } sc.remove(); };
+      const timer = setTimeout(() => { clean(); res(null); }, 20000);
+      window[name] = d => { clearTimeout(timer); clean(); res(d && d.ok ? d : null); };
+      sc.onerror = () => { clearTimeout(timer); clean(); res(null); };
+      sc.src = cloudUrl('&callback=' + name);
+      document.head.appendChild(sc);
+    });
+  });
+}
+/* ---- まとめる ---- */
+function summarize(data){
+  const t = today();
+  const byDay = {}, subj = {};
+  for (const s of SUBJECTS) subj[s.id] = { q:0, c:0, days:{}, units:{}, items:[], total: data.total[s.id] || 0 };
+  for (const r of data.ses){
+    const [day, sid, , , n, right] = r;
+    if (!subj[sid]) continue;
+    subj[sid].q += n; subj[sid].c += right; subj[sid].days[day] = 1;
+    const d = byDay[day] || (byDay[day] = { q:0, c:0 });
+    d.q += n; d.c += right;
+  }
+  for (const it of data.item){
+    const [sid, key, label, n, c, ng, last, grad, unit] = it;
+    if (!subj[sid]) continue;
+    subj[sid].items.push({ key, label, n, c, ng, last, grad, unit });
+    if (unit){
+      const u = subj[sid].units[unit] || (subj[sid].units[unit] = { n:0, c:0 });
+      u.n += n; u.c += c;
+    }
+  }
+  for (const s of SUBJECTS){
+    const x = subj[s.id];
+    x.grad = x.items.filter(i => i.grad > 0).length;                    // 身についた（卒業）
+    x.review = x.items.filter(i => !i.grad && i.ng > 0).length;         // 復習中（まちがえた）
+    x.okItems = x.items.filter(i => !i.grad && !i.ng).length;           // できている（出たが、まちがえていない）
+    x.rest = Math.max(0, x.total - x.grad - x.review - x.okItems);      // まだ出ていない
+    x.dayCount = Object.keys(x.days).length;
+  }
+  // 日ごと（直近28日）
+  const cal = [];
+  for (let i = 27; i >= 0; i--){ const d = t - i; cal.push({ day:d, ...(byDay[d] || { q:0, c:0 }) }); }
+  const allDays = Object.keys(byDay).map(Number).sort((a, b) => a - b);
+  // 連続している日数（今日か、きのうまで続いていれば数える）
+  let streak = 0;
+  if (allDays.length){
+    let d = byDay[t] ? t : (byDay[t - 1] ? t - 1 : null);
+    while (d !== null && byDay[d]){ streak++; d--; }
+  }
+  const recent = cal.filter(c => c.q > 0);
+  const weak = data.item
+    .filter(it => it[5] > 0 && !it[7])
+    .map(it => ({ sid: it[0], label: it[2], n: it[3], c: it[4], ng: it[5], last: it[6] }))
+    .sort((a, b) => b.ng - a.ng || (a.c / a.n) - (b.c / b.n))
+    .slice(0, 10);
+  return {
+    subj, cal, weak, streak,
+    days: allDays.length,
+    recentDays: recent.length,
+    recentQ: recent.reduce((s, c) => s + c.q, 0),
+    recentC: recent.reduce((s, c) => s + c.c, 0),
+    totalQ: Object.values(subj).reduce((s, x) => s + x.q, 0),
+    totalC: Object.values(subj).reduce((s, x) => s + x.c, 0),
+    last: allDays.length ? allDays[allDays.length - 1] : null
+  };
+}
+
+/* ---- 画面 ---- */
+const app = document.getElementById('app');
+let DATA = null, SUM = null, SRC = 'この端末', picked = null;
+
+function calClass(q){ return q === 0 ? '' : q < 10 ? 'v1' : q < 20 ? 'v2' : q < 40 ? 'v3' : q < 70 ? 'v4' : 'v5'; }
+
+function subjectHTML(s){
+  const x = SUM.subj[s.id];
+  if (!x.q && !x.items.length) return `
+    <div class="card subj">
+      <div class="subj-h"><b>${s.name}</b><span class="rate">まだ記録がありません</span></div>
+    </div>`;
+  const tot = Math.max(1, x.total || (x.grad + x.review + x.okItems));
+  const seg = (n, cls) => n ? `<i class="${cls}" style="width:${(n / tot * 100).toFixed(2)}%"></i>` : '';
+  const units = Object.keys(x.units).filter(u => x.units[u].n > 0)
+    .sort((a, b) => x.units[b].n - x.units[a].n)
+    .map(u => {
+      const v = x.units[u], p = pct(v.c, v.n);
+      return `<div class="unit-row">
+        <span>${esc(s.units[u] || u)}</span>
+        <span class="track"><i style="width:${p}%"></i></span>
+        <span class="v num">${p}%<span style="color:var(--ink-2);font-weight:400"> / ${v.n}問</span></span>
+      </div>`;
+    }).join('');
+  return `
+    <div class="card subj">
+      <div class="subj-h">
+        <b>${s.name}</b>
+        <span class="rate">正答率<em class="num">${pct(x.c, x.q)}%</em>　<span class="num">${x.q}</span>問・<span class="num">${x.dayCount}</span>日</span>
+      </div>
+      <div class="bar" role="img" aria-label="身についた ${x.grad}、できている ${x.okItems}、復習中 ${x.review}、まだ ${x.rest}">
+        ${seg(x.grad, 's1')}${seg(x.okItems, 's2')}${seg(x.review, 's3')}${seg(x.rest, 's4')}
+      </div>
+      <div class="keys">
+        <span><i style="background:var(--l5)"></i>身についた <b class="num">${x.grad}</b></span>
+        <span><i style="background:var(--l3)"></i>できている <b class="num">${x.okItems}</b></span>
+        <span><i style="background:var(--ng)"></i>復習中 <b class="num">${x.review}</b></span>
+        <span><i style="background:var(--line)"></i>まだ <b class="num">${x.rest}</b></span>
+      </div>
+      ${units ? `<div class="units">${units}</div>` : ''}
+    </div>`;
+}
+
+function render(){
+  const s = getSync();
+  const hasData = SUM && (SUM.totalQ > 0 || SUM.weak.length > 0);
+  const cal = SUM ? SUM.cal : [];
+  const wd = ['日', '月', '火', '水', '木', '金', '土'];
+  const first = cal.length ? dayDate(cal[0].day).getDay() : 0;
+  app.innerHTML = `
+    <div class="top">
+      <div>
+        <p class="title">学習の記録</p>
+        <p class="src">${SUM && SUM.last !== null ? `最後に勉強した日：<b>${dayLabel(SUM.last)}</b>　` : ''}記録の出どころ：<b>${esc(SRC)}</b>${DATA && DATA.queue ? `（未送信 ${DATA.queue} 件）` : ''}</p>
+      </div>
+      <button class="btn main" id="reload">読みこむ</button>
+    </div>
+    ${!hasData ? `
+      <div class="card empty">
+        まだ記録がありません。<br>
+        息子さんの iPad でドリルを1回やると記録が始まります。<br>
+        保護者のスマホで見るときは、下の<b>「送信の設定」</b>で URL と合言葉を入れてください。
+      </div>` : `
+      <p class="lead">この4週間のようすです。点数よりも、<b>続けられているか</b>と<b>どこでつまずいているか</b>を見るための画面です。</p>
+      <div class="tiles">
+        <div class="card tile"><b class="num">${SUM.recentDays}<u>日</u></b><span>この4週間で<br>練習した日</span></div>
+        <div class="card tile"><b class="num">${SUM.streak}<u>日</u></b><span>今つづいている<br>連続の日数</span></div>
+        <div class="card tile"><b class="num">${SUM.recentQ}<u>問</u></b><span>この4週間の<br>のべ問題数</span></div>
+        <div class="card tile"><b class="num">${pct(SUM.recentC, SUM.recentQ)}<u>%</u></b><span>この4週間の<br>正答率</span></div>
+      </div>
+
+      <h2>教科ごとの進み具合</h2>
+      ${SUBJECTS.map(subjectHTML).join('')}
+      <p class="note"><b>身についた</b>＝復習ボックスを卒業した項目（日をあけて5回できた）。<b>復習中</b>＝まちがえて、これから出しなおされる項目。<b>まだ</b>＝まだ一度も出ていない項目です。</p>
+
+      <h2>気をつけたい項目 <span>（まちがえた回数が多い順）</span></h2>
+      ${SUM.weak.length ? `<div class="weak">${SUM.weak.map(w => {
+        const sname = (SUBJECTS.find(x => x.id === w.sid) || {}).name || w.sid;
+        return `<div class="card weak-row">
+          <span class="nm">${esc(w.label)}</span>
+          <span class="cnt num">${w.n}回中 ${w.ng}回</span>
+          <span class="sb">${esc(sname)}　最後にやったのは ${dayLabel(w.last)}</span>
+          <span class="track"><i style="width:${pct(w.ng, w.n)}%"></i></span>
+        </div>`;
+      }).join('')}</div>` : '<div class="card empty">いまのところ、くり返しまちがえている項目はありません。</div>'}
+
+      <h2>毎日の学習量 <span>（直近4週間・タップで内わけ）</span></h2>
+      <div class="card cal">
+        <div class="cal-head">${wd.map(d => `<span>${d}</span>`).join('')}</div>
+        <div class="cal-grid" id="cal">
+          ${Array(first).fill('<span></span>').join('')}
+          ${cal.map(c => `<button class="${calClass(c.q)}" data-day="${c.day}" aria-pressed="false" aria-label="${dayLabel(c.day)} ${c.q}問">${dayDate(c.day).getDate()}</button>`).join('')}
+        </div>
+        <div class="cal-legend">
+          <span>少ない</span><i style="background:var(--surface-2)"></i><i style="background:var(--l1)"></i><i style="background:var(--l2)"></i><i style="background:var(--l3)"></i><i style="background:var(--l4)"></i><i style="background:var(--l5)"></i><span>多い</span>
+        </div>
+        <p class="cal-detail" id="calDetail">この4週間：練習した日 <b class="num">${SUM.recentDays}</b>日／のべ <b class="num">${SUM.recentQ}</b>問</p>
+      </div>
+
+      <h2>声かけのヒント</h2>
+      <p class="note">
+        ・結果（点数）より、<b>やり方や続けたこと</b>をほめると、むずかしい問題にちょうせんしやすくなります。<br>
+        ・「気をつけたい項目」は、しかる材料ではなく<b>これから伸びるところ</b>です。アプリが自動で出しなおします。<br>
+        ・正答率が下がる日があっても、<b>新しい分野に入ったサイン</b>のことが多いです。数週間の流れで見てください。
+      </p>`}
+
+    <p class="src" style="margin:26px 0 0">ドリルへ：${SUBJECTS.map(x => `<a href="${x.file}">${x.name}</a>`).join('　')}　<a href="kiroku.html">がんばりの記録</a></p>
+
+    <details class="set" ${!hasData ? 'open' : ''}>
+      <summary>送信の設定（保護者用）</summary>
+      <div class="set-body">
+        <p>息子さんの iPad の記録を、保護者のスマホでも見られるようにする設定です。<b>同じ URL と合言葉</b>を、iPad と保護者のスマホの両方に入れてください。手順はリポジトリの <b>dashboard/セットアップ.md</b> にあります。</p>
+        <label for="url">送信先の URL（Apps Script のウェブアプリ）</label>
+        <input id="url" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/……/exec" value="${esc(s.url || '')}">
+        <label for="key">合言葉</label>
+        <input id="key" type="text" placeholder="すきな文字列（iPad と同じもの）" value="${esc(s.key || '')}">
+        <label for="name">名前（記録につけるしるし）</label>
+        <input id="name" type="text" placeholder="例：たろう" value="${esc(s.name || '')}">
+        <div class="row">
+          <button class="btn main" id="save">保存する</button>
+          <button class="btn" id="clear">設定を消す</button>
+        </div>
+        <p class="msg" id="msg"></p>
+      </div>
+    </details>`;
+
+  document.getElementById('reload').onclick = () => load(true);
+  const cals = app.querySelectorAll('#cal button');
+  cals.forEach(b => b.onclick = () => {
+    const day = Number(b.dataset.day), c = SUM.cal.find(x => x.day === day);
+    cals.forEach(o => o.setAttribute('aria-pressed', o === b ? 'true' : 'false'));
+    document.getElementById('calDetail').innerHTML = c.q
+      ? `${dayLabel(day)}：<b class="num">${c.q}</b>問（正答率 <b class="num">${pct(c.c, c.q)}</b>%）`
+      : `${dayLabel(day)}：お休み`;
+  });
+  document.getElementById('save').onclick = () => {
+    const t = getSync();
+    t.url = document.getElementById('url').value.trim();
+    t.key = document.getElementById('key').value.trim();
+    t.name = document.getElementById('name').value.trim();
+    saveSync(t);
+    document.getElementById('msg').textContent = '保存しました。「読みこむ」を押すと、記録を取りにいきます。';
+  };
+  document.getElementById('clear').onclick = () => {
+    const t = getSync();
+    delete t.url; delete t.key;
+    saveSync(t);
+    document.getElementById('msg').textContent = '設定を消しました（この端末の記録は残っています）。';
+  };
+}
+
+/* ---- 読みこみ ---- */
+function useData(data, src){
+  DATA = data; SRC = src; SUM = summarize(data);
+  render();
+}
+function fromCloud(j){
+  return {
+    ses: (j.ses || []).map(r => [r[0], r[1], r[2], r[3], r[4], r[5], r[6]]),
+    item: (j.items || []).map(r => [r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8]]),
+    total: j.total || {},
+    queue: getSync().q.length
+  };
+}
+function load(force){
+  const local = readLocal();
+  const cache = readCloudCache();
+  // まずは手元にあるもので表示する（待たせない）
+  if (local.ses.length || local.item.length) useData(local, 'この端末');
+  else if (cache) useData(fromCloud(cache), 'クラウド（' + new Date(cache.got).toLocaleString('ja-JP') + ' に取得）');
+  else useData(local, 'この端末');
+
+  if (!getSync().url) return;
+  if (!force && cache && Date.now() - cache.got < 5 * 60 * 1000) return;   // 5分以内に取ったものは使いまわす
+  fetchCloud().then(j => {
+    if (!j) {
+      if (!local.ses.length && !cache) {
+        const m = document.getElementById('msg');
+        if (m) m.textContent = '記録を取りにいけませんでした。URL と合言葉、ネットの接続を確かめてください。';
+      }
+      return;
+    }
+    j.got = Date.now();
+    try { localStorage.setItem(CLOUD_KEY, JSON.stringify(j)); } catch (e) {}
+    const cloud = fromCloud(j);
+    // クラウドのほうが多くの記録を持っているときは、そちらを使う
+    if (cloud.ses.length >= local.ses.length) useData(cloud, 'クラウド（いま取得）');
+  });
+}
+load(false);
+</script>
+</body>
+</html>
