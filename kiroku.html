@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#F4F1EA">
+<title>がんばりの記録</title>
+<style>
+  /* 色の意味は5つのドリルと同じ。ここでは「点数」より「続けたこと・身についたこと」を見せる */
+  :root{
+    color-scheme:light;
+    --bg:#F4F1EA; --surface:#FFFDF9; --surface-2:#ECE7DC; --line:#DAD3C5;
+    --ink:#1E2833; --ink-2:#5A6472; --faint:#A39C8E;
+    --primary:#1E2833; --ok:#2463A8; --ok-soft:#E2ECF8; --ng:#B8570E; --mark:#FFE27A;
+    --l1:#E8F0FA; --l2:#BCD5EE; --l3:#7FA9D6; --l4:#4A83BE; --l5:#2463A8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  [hidden]{display:none!important;}
+  html,body{margin:0;}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:"BIZ UDPGothic","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",system-ui,sans-serif;
+    display:flex;justify-content:center;-webkit-text-size-adjust:100%;
+  }
+  #app{width:100%;max-width:520px;padding:20px 18px calc(28px + env(safe-area-inset-bottom));}
+  .num{font-family:"Helvetica Neue",Arial,sans-serif;font-variant-numeric:tabular-nums;}
+  button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer;}
+  button:focus-visible,input:focus-visible{outline:3px solid var(--ok);outline-offset:2px;}
+  a{color:var(--ok);}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .title{font-size:1.3rem;font-weight:800;letter-spacing:.04em;margin:6px 0 4px;}
+  .switches{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;}
+  .switch{
+    padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);
+    color:var(--ink-2);font-size:.8rem;font-weight:600;text-decoration:none;
+  }
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(30,40,51,.05);}
+
+  /* いちばん見せたい数字 */
+  .hero{padding:22px 18px;text-align:center;margin:14px 0 12px;}
+  .hero .big{font-size:3.6rem;font-weight:800;line-height:1;letter-spacing:-.02em;}
+  .hero .big u{text-decoration:none;font-size:1.3rem;color:var(--ink-2);margin-left:4px;}
+  .hero .cap{font-size:.9rem;color:var(--ink-2);margin-top:8px;line-height:1.7;}
+  .hero .praise{
+    margin:14px auto 0;max-width:24em;font-size:.95rem;line-height:1.85;
+    padding:10px 14px;border-radius:12px;background:var(--ok-soft);color:var(--ok);font-weight:700;
+  }
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .tile{padding:14px 16px;text-align:center;}
+  .tile b{display:block;font-size:1.8rem;font-weight:800;line-height:1.1;}
+  .tile b u{text-decoration:none;font-size:.85rem;color:var(--ink-2);margin-left:2px;}
+  .tile span{display:block;font-size:.78rem;color:var(--ink-2);margin-top:4px;line-height:1.5;}
+
+  h2{font-size:.86rem;color:var(--ink-2);font-weight:700;margin:24px 0 8px;}
+  .subj{padding:13px 16px;margin-bottom:9px;display:block;width:100%;text-align:left;text-decoration:none;color:var(--ink);}
+  .subj:active{background:var(--surface-2);}
+  .subj-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+  .subj-h b{font-size:1rem;font-weight:700;}
+  .subj-h .go{font-size:.78rem;color:var(--ok);font-weight:700;}
+  .bar{display:flex;gap:2px;height:12px;margin:9px 0 0;border-radius:6px;overflow:hidden;background:var(--surface-2);}
+  .bar i{display:block;height:100%;}
+  .keys{display:flex;flex-wrap:wrap;gap:3px 12px;margin-top:7px;font-size:.74rem;color:var(--ink-2);}
+  .keys i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;}
+  .keys b{color:var(--ink);font-weight:700;}
+  .todo{
+    margin:9px 0 0;padding:8px 12px;border-radius:10px;background:var(--mark);
+    font-size:.8rem;font-weight:700;color:var(--ink);
+  }
+  /* カレンダー */
+  .cal{padding:14px 12px;}
+  .cal-head,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-head span{text-align:center;font-size:.7rem;color:var(--ink-2);padding-bottom:4px;}
+  .cal-grid span{aspect-ratio:1/1;border-radius:6px;background:var(--surface-2);font-size:.68rem;color:var(--ink-2);display:grid;place-items:center;}
+  .cal-grid span.v1{background:var(--l1);} .cal-grid span.v2{background:var(--l2);}
+  .cal-grid span.v3{background:var(--l3);color:#fff;} .cal-grid span.v4{background:var(--l4);color:#fff;}
+  .cal-grid span.v5{background:var(--l5);color:#fff;}
+  .cal-cap{margin:10px 0 0;font-size:.8rem;color:var(--ink-2);line-height:1.7;}
+  .note{
+    margin:16px 0 0;padding:12px 15px;border-radius:12px;background:var(--surface);
+    border:1px dashed var(--line);color:var(--ink-2);font-size:.82rem;line-height:1.9;
+  }
+  .note b{color:var(--ink);}
+  .empty{padding:24px 18px;text-align:center;color:var(--ink-2);font-size:.92rem;line-height:1.9;}
+  details.set{margin-top:26px;}
+  details.set summary{
+    list-style:none;cursor:pointer;padding:11px 14px;border-radius:12px;background:var(--surface);
+    border:1px solid var(--line);font-size:.82rem;font-weight:700;color:var(--ink-2);
+  }
+  details.set summary::-webkit-details-marker{display:none;}
+  .set-body{padding:14px 15px 4px;font-size:.84rem;color:var(--ink-2);line-height:1.8;}
+  .set-body label{display:block;margin:12px 0 4px;font-weight:700;color:var(--ink);font-size:.8rem;}
+  .set-body input{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+    font-size:.9rem;font-family:inherit;background:var(--surface);color:var(--ink);
+  }
+  .set-body .row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .btn{border:1px solid var(--line);border-radius:999px;padding:8px 16px;background:var(--surface);font-size:.82rem;color:var(--ink-2);font-weight:600;}
+  .btn.main{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .msg{margin-top:10px;font-size:.82rem;font-weight:700;color:var(--ok);}
+  @media (min-width:700px){
+    #app{max-width:640px;padding:28px 24px;}
+    .title{font-size:1.6rem;}
+    .hero .big{font-size:4.4rem;}
+    .tiles{grid-template-columns:repeat(4,1fr);}
+    .subj-h b{font-size:1.12rem;}
+    h2{font-size:.95rem;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ============================================================
+   がんばりの記録（子ども向け）
+     5つのドリルが この端末に残した記録から、「続けた日数」と「身についた数」を見せる。
+     点数や正答率は前に出さない（点を気にしすぎると、むずかしい問題をさけるようになるため）。
+     いちばん下に、保護者用の送信設定がある。
+   ============================================================ */
+const SUBJECTS = [
+  { id:'math',    name:'数学', file:'index.html' },
+  { id:'science', name:'理科', file:'science.html' },
+  { id:'kokugo',  name:'国語', file:'kokugo.html' },
+  { id:'shakai',  name:'社会', file:'shakai.html' },
+  { id:'eigo',    name:'英語', file:'eigo.html' }
+];
+const SYNC_KEY = 'study-drill-sync';
+const DAY = 86400000;
+function today(){ const d = new Date(); d.setHours(0, 0, 0, 0); return Math.round(d.getTime() / DAY); }
+function dayDate(n){ const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + (n - today())); return d; }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]); }
+function getSync(){
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(SYNC_KEY)); } catch (e) {}
+  if (!s || typeof s !== 'object') s = {};
+  if (!Array.isArray(s.q)) s.q = [];
+  return s;
+}
+function saveSync(s){ try { localStorage.setItem(SYNC_KEY, JSON.stringify(s)); } catch (e) {} }
+
+// 5教科の記録を読む
+function read(){
+  const T = today(), byDay = {}, subj = {};
+  let grad = 0, items = 0, due = 0;
+  for (const s of SUBJECTS){
+    let L = null, B = null;
+    try { L = JSON.parse(localStorage.getItem('study-drill-log-' + s.id)); } catch (e) {}
+    try { B = JSON.parse(localStorage.getItem('study-drill-review-' + s.id)); } catch (e) {}
+    const x = subj[s.id] = { q:0, grad:0, ok:0, review:0, rest:0, total:(L && L.total) || 0, due:0, today:0 };
+    if (L){
+      (L.ses || []).forEach(r => {
+        const d = byDay[r[0]] || (byDay[r[0]] = 0);
+        byDay[r[0]] = d + r[3];
+        x.q += r[3];
+        if (r[0] === T) x.today += r[3];
+      });
+      Object.values(L.item || {}).forEach(v => {
+        items++;
+        if (v[4] > 0){ x.grad++; grad++; }
+        else if (v[2] > 0) x.review++;
+        else x.ok++;
+      });
+    }
+    x.rest = Math.max(0, x.total - x.grad - x.review - x.ok);
+    if (B) x.due = Object.keys(B).filter(k => B[k].due <= T).length;
+    due += x.due;
+  }
+  // 連続している日数
+  let streak = 0, d = byDay[T] ? T : (byDay[T - 1] ? T - 1 : null);
+  while (d !== null && byDay[d]){ streak++; d--; }
+  const cal = [];
+  for (let i = 27; i >= 0; i--) cal.push({ day:T - i, q: byDay[T - i] || 0 });
+  return {
+    subj, cal, streak, grad, items, due,
+    days: Object.keys(byDay).length,
+    todayQ: byDay[T] || 0,
+    totalQ: Object.values(byDay).reduce((a, b) => a + b, 0),
+    calDays: cal.filter(c => c.q > 0).length
+  };
+}
+function praise(D){
+  if (!D.days) return 'ドリルを1回やると、ここに記録がたまっていきます。';
+  if (D.streak >= 7) return `${D.streak}日つづけているのは、すごいこと。毎日すこしずつが、いちばん力になります。`;
+  if (D.streak >= 3) return `${D.streak}日つづいています。この調子で、今日も1回だけやってみよう。`;
+  if (D.todayQ) return '今日もできたね。続けた日数は、力がついている印です。';
+  return 'また今日から1日。5問だけでも、やれば記録がのびます。';
+}
+function calClass(q){ return q === 0 ? '' : q < 10 ? 'v1' : q < 20 ? 'v2' : q < 40 ? 'v3' : q < 70 ? 'v4' : 'v5'; }
+
+const app = document.getElementById('app');
+function render(){
+  const D = read(), s = getSync();
+  const wd = ['日', '月', '火', '水', '木', '金', '土'];
+  const first = dayDate(D.cal[0].day).getDay();
+  const has = D.days > 0;
+  app.innerHTML = `
+    <div class="top">
+      <p class="title">がんばりの記録</p>
+      <span class="switches">${SUBJECTS.map(x => `<a class="switch" href="${x.file}">${x.name}</a>`).join('')}</span>
+    </div>
+    ${!has ? '<div class="card empty">まだ記録がありません。<br>どれかのドリルを1回やると、ここに たまっていきます。</div>' : `
+    <div class="card hero">
+      <div class="big num">${D.streak}<u>日</u></div>
+      <p class="cap">つづけて勉強した日数<br><span class="num">${D.days}</span>日ぶん の記録がたまっています</p>
+      <p class="praise">${praise(D)}</p>
+    </div>
+    <div class="tiles">
+      <div class="card tile"><b class="num">${D.grad}<u>こ</u></b><span>身についた<br>（卒業した項目）</span></div>
+      <div class="card tile"><b class="num">${D.todayQ}<u>問</u></b><span>今日やった<br>問題</span></div>
+      <div class="card tile"><b class="num">${D.totalQ}<u>問</u></b><span>ぜんぶで<br>解いた問題</span></div>
+      <div class="card tile"><b class="num">${D.due}<u>問</u></b><span>今日の<br>復習</span></div>
+    </div>
+
+    <h2>教科ごと</h2>
+    ${SUBJECTS.map(x => {
+      const v = D.subj[x.id], tot = Math.max(1, v.total || (v.grad + v.ok + v.review));
+      const seg = (n, c) => n ? `<i style="width:${(n / tot * 100).toFixed(2)}%;background:${c}"></i>` : '';
+      return `<a class="card subj" href="${x.file}">
+        <span class="subj-h"><b>${x.name}</b><span class="go">${v.due ? `今日の復習 ${v.due}問 ▶` : 'やる ▶'}</span></span>
+        <span class="bar">${seg(v.grad, 'var(--l5)')}${seg(v.ok, 'var(--l3)')}${seg(v.review, 'var(--ng)')}${seg(v.rest, 'var(--line)')}</span>
+        <span class="keys">
+          <span><i style="background:var(--l5)"></i>身についた <b class="num">${v.grad}</b></span>
+          <span><i style="background:var(--l3)"></i>できている <b class="num">${v.ok}</b></span>
+          <span><i style="background:var(--ng)"></i>復習中 <b class="num">${v.review}</b></span>
+          <span><i style="background:var(--line)"></i>まだ <b class="num">${v.rest}</b></span>
+        </span>
+      </a>`;
+    }).join('')}
+
+    <h2>この4週間</h2>
+    <div class="card cal">
+      <div class="cal-head">${wd.map(d => `<span>${d}</span>`).join('')}</div>
+      <div class="cal-grid">
+        ${Array(first).fill('<span style="background:transparent"></span>').join('')}
+        ${D.cal.map(c => `<span class="${calClass(c.q)}" title="${c.q}問">${dayDate(c.day).getDate()}</span>`).join('')}
+      </div>
+      <p class="cal-cap">色がついた日が、勉強した日。この4週間で <b class="num">${D.calDays}</b>日、のべ <b class="num">${D.cal.reduce((a, b) => a + b.q, 0)}</b>問。</p>
+    </div>
+    <p class="note"><b>「身についた」</b>は、復習ボックスを卒業した数です。1日後・3日後・1週間後…と間をあけて5回できると卒業になります。<br>まちがえた問題は、わすれたころに出てきます。<b>そこで思い出せたときが、いちばん記憶に残るとき</b>です。</p>`}
+
+    <details class="set">
+      <summary>保護者用の設定（記録を送る）</summary>
+      <div class="set-body">
+        <p>ここで設定すると、勉強の記録が保護者のスマホからも見られるようになります（設定しなければ、これまでどおり この端末だけに残ります）。手順は <b>dashboard/セットアップ.md</b> にあります。</p>
+        <label for="url">送信先の URL（Apps Script のウェブアプリ）</label>
+        <input id="url" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/……/exec" value="${esc(s.url || '')}">
+        <label for="key">合言葉</label>
+        <input id="key" type="text" placeholder="すきな文字列（保護者のスマホと同じもの）" value="${esc(s.key || '')}">
+        <label for="name">名前（記録につけるしるし）</label>
+        <input id="name" type="text" placeholder="例：たろう" value="${esc(s.name || '')}">
+        <div class="row">
+          <button class="btn main" id="save">保存する</button>
+          <button class="btn" id="send">いま送る（未送信 ${s.q.length} 件）</button>
+          <a class="btn" href="oya.html">保護者ページ</a>
+        </div>
+        <p class="msg" id="msg">${s.at ? '最後に送ったのは ' + new Date(s.at).toLocaleString('ja-JP') : ''}</p>
+      </div>
+    </details>`;
+
+  document.getElementById('save').onclick = () => {
+    const t = getSync();
+    t.url = document.getElementById('url').value.trim();
+    t.key = document.getElementById('key').value.trim();
+    t.name = document.getElementById('name').value.trim();
+    saveSync(t);
+    document.getElementById('msg').textContent = '保存しました。「いま送る」を押すと、たまっている記録を送ります。';
+  };
+  document.getElementById('send').onclick = () => {
+    const t = getSync();
+    if (!t.url){ document.getElementById('msg').textContent = 'さきに URL を入れて保存してください。'; return; }
+    if (!t.q.length){ document.getElementById('msg').textContent = '送るものはありません（ぜんぶ送信ずみです）。'; return; }
+    document.getElementById('msg').textContent = '送っています…';
+    send(t, () => render());
+  };
+}
+// たまっている記録を送る（保護者ページと同じしくみ）
+function send(s, after){
+  const rows = s.q.slice(0, 500);
+  const body = JSON.stringify({ k: s.key || '', name: s.name || '', rows });
+  const done = () => {
+    const t = getSync();
+    t.q = t.q.slice(rows.length);
+    t.at = Date.now();
+    saveSync(t);
+    if (after) after();
+  };
+  fetch(s.url, { method:'POST', body })
+    .then(r => { if (r.ok) done(); else if (after) after(); })
+    .catch(() => fetch(s.url, { method:'POST', mode:'no-cors', body }).then(done).catch(() => {
+      const m = document.getElementById('msg');
+      if (m) m.textContent = '送れませんでした。ネットにつながっているか、URL を確かめてください。';
+    }));
+}
+render();
+</script>
+</body>
+</html>
