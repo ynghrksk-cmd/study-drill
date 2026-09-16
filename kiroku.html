@@ -251,9 +251,14 @@ function render(){
         <div class="row">
           <button class="btn main" id="save">保存する</button>
           <button class="btn" id="send">いま送る（未送信 ${s.q.length} 件）</button>
+          <button class="btn" id="test">送信先をためす</button>
           <a class="btn" href="oya.html">保護者ページ</a>
         </div>
-        <p class="msg" id="msg">${s.at ? '最後に送ったのは ' + new Date(s.at).toLocaleString('ja-JP') : ''}</p>
+        <p class="msg" id="msg">${
+          s.at ? '最後に送ったのは ' + new Date(s.at).toLocaleString('ja-JP') + (s.q.length ? '（未送信 ' + s.q.length + ' 件）' : '（未送信なし）')
+          : s.q.length ? '未送信が ' + s.q.length + ' 件あります。「いま送る」を押してください。'
+          : 'まだ送った記録はありません。ドリルを1回やると記録ができます。'
+        }</p>
       </div>
     </details>`;
 
@@ -265,14 +270,53 @@ function render(){
     saveSync(t);
     document.getElementById('msg').textContent = '保存しました。「いま送る」を押すと、たまっている記録を送ります。';
   };
+  // 設定が正しいかどうかを、勉強しなくても確かめられるようにする
+  document.getElementById('test').onclick = () => {
+    const t = getSync();
+    const msg = document.getElementById('msg');
+    if (!t.url){ msg.textContent = 'さきに URL を入れて保存してください。'; return; }
+    msg.textContent = '送信先をためしています…';
+    checkUrl(t, r => {
+      if (r === 'ok'){
+        msg.textContent = 'つながりました。設定は正しいです。これで、勉強のあとに自動で送られます。';
+      } else if (r === 'key'){
+        msg.textContent = '合言葉がちがうようです。Apps Script のコードの KEY と、同じ文字列にしてください。';
+      } else {
+        msg.textContent = 'つながりませんでした。URL の終わりが /exec になっているか、ネットにつながっているかを確かめてください。';
+      }
+    });
+  };
   document.getElementById('send').onclick = () => {
     const t = getSync();
     if (!t.url){ document.getElementById('msg').textContent = 'さきに URL を入れて保存してください。'; return; }
-    if (!t.q.length){ document.getElementById('msg').textContent = '送るものはありません（ぜんぶ送信ずみです）。'; return; }
+    if (!t.q.length){
+      // 「送りきった」のか「そもそも記録がない」のかで、言い方を変える
+      document.getElementById('msg').textContent = t.at
+        ? 'ぜんぶ送信ずみです（最後に送ったのは ' + new Date(t.at).toLocaleString('ja-JP') + '）。'
+        : 'まだ送る記録がありません。ドリルを1回（5問でも）やると記録ができて、自動で送られます。';
+      return;
+    }
     document.getElementById('msg').textContent = '送っています…';
     send(t, () => render());
   };
 }
+// 送信先に、読みにいってみる（ふつうに読めないときは script タグで読む＝JSONP）
+function checkUrl(s, cb){
+  const url = s.url + (s.url.indexOf('?') >= 0 ? '&' : '?') + 'k=' + encodeURIComponent(s.key || '');
+  const judge = j => cb(!j ? 'ng' : j.ok ? 'ok' : 'key');
+  fetch(url).then(r => r.ok ? r.json() : null).catch(() => null).then(j => {
+    if (j) return judge(j);
+    const name = '__test' + Date.now();
+    const sc = document.createElement('script');
+    const clean = () => { try { delete window[name]; } catch (e) { window[name] = undefined; } sc.remove(); };
+    const timer = setTimeout(() => { clean(); cb('ng'); }, 20000);
+    window[name] = d => { clearTimeout(timer); clean(); judge(d); };
+    sc.onerror = () => { clearTimeout(timer); clean(); cb('ng'); };
+    sc.src = url + '&callback=' + name;
+    document.head.appendChild(sc);
+  });
+}
+
 // たまっている記録を送る（保護者ページと同じしくみ）
 function send(s, after){
   const rows = s.q.slice(0, 500);
@@ -283,6 +327,8 @@ function send(s, after){
     t.at = Date.now();
     saveSync(t);
     if (after) after();
+    const m = document.getElementById('msg');
+    if (m && !t.q.length) m.textContent = '送りました（' + rows.length + ' 件）。保護者のスマホで「読みこむ」を押すと出てきます。';
   };
   fetch(s.url, { method:'POST', body })
     .then(r => { if (r.ok) done(); else if (after) after(); })
