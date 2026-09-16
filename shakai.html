@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F4F1EA">
+<title>中1社会ドリル</title>
+<style>
+  /* ============================================================
+     色の意味は固定する（毎回同じ意味で出てくると、見ただけでわかる）
+       正解＝青 / まちがい＝オレンジ / 大事なきまり＝蛍光ペンの黄色 / 次に押すボタン＝こい紺
+     赤と緑の組み合わせは使わない（色覚のタイプによって見分けにくいため）
+     ============================================================ */
+  :root{
+    color-scheme:light;
+    --bg:#F4F1EA;        /* 紙のような、まぶしすぎない地の色 */
+    --surface:#FFFDF9;   /* カード */
+    --surface-2:#ECE7DC; /* キーの押した色など */
+    --line:#DAD3C5;
+    --grid:rgba(60,90,130,.09);
+    --ink:#1E2833;       /* 文字（地の色とのコントラスト 約13:1） */
+    --ink-2:#5A6472;     /* 補足の文字 */
+    --faint:#A39C8E;     /* 入力前の「—」など */
+    --pen:#22313F;       /* 手書きの線（えんぴつの色） */
+    --primary:#1E2833;   /* 次に押すボタン */
+    --ok:#2463A8;        /* 正解 */
+    --ok-soft:#E2ECF8;
+    --ng:#B8570E;        /* まちがい（赤を使わず、あせりをさそわない） */
+    --ng-soft:#FAEBDC;
+    --mark:#FFE27A;      /* 大事なきまり */
+    --focus:#2463A8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  [hidden]{display:none!important;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"BIZ UDPGothic","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",system-ui,sans-serif;
+    display:flex;justify-content:center;
+    overscroll-behavior:none;
+    touch-action:manipulation;
+    -webkit-text-size-adjust:100%;
+  }
+  #app{
+    width:100%;max-width:480px;
+    padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;min-height:100%;
+  }
+  .num{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-variant-numeric:tabular-nums;
+  }
+  button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer;}
+  button:focus-visible{outline:3px solid var(--focus);outline-offset:2px;}
+
+  /* ---- トップ ---- */
+  .title{font-size:1.3rem;font-weight:800;letter-spacing:.04em;margin:8px 0 6px;}
+  .lead{color:var(--ink-2);font-size:.9rem;line-height:1.8;margin:0 0 20px;}
+  .menu{display:flex;flex-direction:column;gap:10px;}
+  .unit{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px;text-align:left;display:flex;align-items:center;gap:14px;
+    box-shadow:0 1px 2px rgba(30,40,51,.05);
+  }
+  .unit:active{background:var(--surface-2);}
+  .unit b{font-size:1.02rem;font-weight:700;display:block;}
+  .unit span{font-size:.8rem;color:var(--ink-2);display:block;margin-top:4px;line-height:1.5;}
+  .unit .mark{
+    width:40px;height:40px;flex:none;margin:0;border-radius:10px;background:var(--ok-soft);
+    display:grid;place-items:center;font-size:1.2rem;font-weight:700;color:var(--ok);
+  }
+  .unit .badge{
+    display:inline-block;margin:0 0 0 8px;padding:1px 8px;border-radius:999px;vertical-align:2px;
+    background:var(--mark);color:var(--ink);font-size:.7rem;font-weight:700;
+  }
+  .count{
+    display:flex;align-items:center;gap:8px;margin:22px 0 6px;
+    font-size:.84rem;color:var(--ink-2);
+  }
+  .count button{
+    border:1px solid var(--line);border-radius:999px;padding:7px 15px;
+    font-size:.84rem;color:var(--ink-2);background:var(--surface);
+  }
+  .count button[aria-pressed="true"]{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:700;}
+  .tip{
+    margin:18px 0 0;padding:12px 14px;border-radius:12px;border:1px dashed var(--line);
+    background:var(--surface);color:var(--ink-2);font-size:.82rem;line-height:1.8;
+  }
+
+  /* ---- 出題 ---- */
+  #app.is-quiz{
+    height:100vh;height:100dvh;min-height:0;
+    padding-top:14px;padding-bottom:calc(14px + env(safe-area-inset-bottom));
+    -webkit-user-select:none;user-select:none;
+  }
+  .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:.82rem;color:var(--ink-2);}
+  .bar .quit{padding:5px 12px;border:1px solid var(--line);border-radius:999px;font-size:.78rem;color:var(--ink-2);background:var(--surface);}
+  /* 進み具合は1問ずつの区切りで見せる（ゴールが近づくほどやる気が出やすい） */
+  .dots{display:flex;gap:4px;margin-top:10px;flex:none;}
+  .dots i{flex:1;height:6px;border-radius:3px;background:var(--surface-2);transition:background .3s;}
+  .dots i.done{background:#A7AEB8;}
+  .dots i.now{background:var(--ink);}
+  .main{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;margin-top:10px;}
+  .left{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;}
+  /* 問題はカードにのせて、いちばん目がいくようにする */
+  .q{
+    text-align:center;font-size:clamp(1.6rem,7vw,2.4rem);font-weight:700;line-height:1.3;
+    letter-spacing:.01em;padding:10px 14px;
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(30,40,51,.05);
+  }
+  .q small{
+    display:block;font-size:.85rem;font-weight:500;color:var(--ink-2);margin-bottom:4px;letter-spacing:.02em;
+    font-family:"BIZ UDPGothic","Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+  }
+  .q.word{text-align:left;font-size:1.08rem;font-weight:500;line-height:1.9;letter-spacing:.03em;padding:12px 16px;}
+  .q.word .tag{
+    display:inline-block;margin-right:8px;padding:1px 9px;border-radius:999px;vertical-align:2px;
+    background:var(--surface-2);color:var(--ink-2);font-size:.72rem;font-weight:700;letter-spacing:0;
+  }
+  .nw{white-space:nowrap;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;}
+  .work{flex:1;min-height:150px;display:flex;flex-direction:column;overflow:hidden;}
+  .head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;color:var(--ink-2);}
+  .work .head{padding:6px 6px 6px 12px;border-bottom:1px solid var(--line);}
+  .tools{display:flex;gap:6px;}
+  .tools button{padding:6px 12px;border:1px solid var(--line);border-radius:999px;font-size:.76rem;color:var(--ink-2);background:var(--surface);}
+  .tools button[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700;}
+  .ink{position:relative;flex:1;min-height:0;touch-action:none;-webkit-touch-callout:none;}
+  .ink canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+  /* 計算スペースは方眼（式の行や位がそろえやすい） */
+  .work .ink{
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:28px 28px;
+  }
+
+  .right{flex:none;display:flex;flex-direction:column;gap:8px;min-height:0;}
+  .answer{display:flex;flex-direction:column;gap:8px;}
+  .ans-row{display:flex;align-items:center;gap:10px;}
+  .ans-row .pre{font-size:1.5rem;font-weight:700;color:var(--ink-2);flex:none;}
+  .ans-row .suf{font-size:1.2rem;font-weight:700;color:var(--ink-2);flex:none;}
+  .ans{flex:1;height:96px;}
+  .ans::after{content:'';position:absolute;left:16px;right:16px;bottom:22%;border-bottom:2px dashed var(--line);pointer-events:none;}
+  .ans .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--faint);font-size:.9rem;pointer-events:none;}
+  .read{display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-height:2.6rem;padding:0 4px;}
+  .read .label{font-size:.82rem;color:var(--ink-2);}
+  .read .val{font-size:2rem;font-weight:700;min-width:2.2ch;text-align:right;border-bottom:3px solid var(--line);padding:0 6px 2px;flex:none;}
+  .read .val.empty{color:var(--faint);}
+  .read.ok .val{border-color:var(--ok);color:var(--ok);}
+  .read.ok .label{color:var(--ok);font-size:1.05rem;font-weight:700;}
+
+  /* ---- テンキー（手書きの予備なので、目立ちすぎないように） ---- */
+  .keys{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+  .keys button{
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    height:44px;font-size:1.25rem;font-weight:600;color:var(--ink);
+  }
+  .keys button:active{background:var(--surface-2);}
+  .go{
+    flex:none;width:100%;min-height:54px;padding:6px 14px;border-radius:14px;
+    background:var(--primary);color:#fff;font-size:1.05rem;font-weight:700;line-height:1.35;
+  }
+  .go:disabled{background:var(--surface-2);color:var(--faint);}
+  .go.ok{background:var(--ok);color:#fff;}
+  .go.step{background:var(--surface);color:var(--ink);box-shadow:inset 0 0 0 2px var(--primary);}
+  .go.next{background:var(--primary);color:#fff;}
+
+  /* ---- 解説 ---- */
+  .right.explaining{flex:0 1 auto;max-height:64%;}
+  .explain{
+    flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--ng);border-radius:14px;
+  }
+  .ex-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 14px;}
+  .ex-top .mine{font-size:.85rem;color:var(--ink-2);}
+  .ex-top .mine b{color:var(--ng);font-size:1.15rem;margin-left:6px;}
+  .ex-top .correct{font-size:.95rem;font-weight:700;}
+  .ex-top .correct b{color:var(--ok);font-size:1.6rem;margin-left:6px;}
+  .hint{margin:10px 0 0;padding:9px 12px;border-radius:10px;background:var(--ng-soft);font-size:.88rem;line-height:1.75;}
+  .hint b{font-weight:700;}
+  .ex-h{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;}
+  .ex-h h3{font-size:.82rem;color:var(--ink-2);font-weight:700;margin:0;}
+  .ex-h .all{font-size:.8rem;color:var(--ok);font-weight:600;padding:4px 6px;}
+  .steps{list-style:none;margin:0;padding:0;counter-reset:st;display:flex;flex-direction:column;gap:14px;}
+  .steps li{counter-increment:st;position:relative;padding-left:34px;animation:rise .25s ease-out;}
+  .steps li::before{
+    content:counter(st);position:absolute;left:0;top:3px;width:24px;height:24px;border-radius:50%;
+    background:var(--primary);color:#fff;font-size:.8rem;font-weight:700;display:grid;place-items:center;
+  }
+  .steps p{margin:0;font-size:.95rem;line-height:1.85;}
+  /* 大事なきまりは蛍光ペン（毎回同じ見た目にして、目に入りやすくする） */
+  .steps b{
+    font-weight:700;padding:0 2px;
+    background:linear-gradient(transparent 58%,var(--mark) 58%);
+    -webkit-box-decoration-break:clone;box-decoration-break:clone;
+  }
+  .steps .m{display:inline-block;margin-top:6px;padding:6px 12px;border-radius:8px;background:var(--bg);font-size:1.2rem;font-weight:600;line-height:1.65;}
+  .steps .m span{display:block;}
+  /* 数直線の図 */
+  .fig{margin:8px 0 0;max-width:440px;}
+  .fig figcaption{font-size:.76rem;color:var(--ink-2);margin-bottom:2px;}
+  .nl{display:block;width:100%;height:auto;}
+  .nl .axis,.nl .tick{stroke:var(--ink-2);stroke-width:1.5;}
+  .nl .guide{stroke:var(--line);stroke-width:1.5;stroke-dasharray:4 3;}
+  .nl .a1{stroke:var(--ink);stroke-width:3;}
+  .nl .h1{fill:var(--ink);}
+  .nl .a2{stroke:var(--ok);stroke-width:3;}
+  .nl .h2{fill:var(--ok);}
+  .nl text{font-family:"Helvetica Neue",Arial,sans-serif;font-size:15px;text-anchor:middle;fill:var(--ink-2);}
+  .nl text.s1{fill:var(--ink);font-weight:700;}
+  .nl text.s2,.nl text.ans{fill:var(--ok);font-weight:700;}
+  @keyframes rise{from{opacity:0;transform:translateY(4px);}}
+
+  /* ---- 結果 ---- */
+  .score{text-align:center;padding:26px 0 6px;}
+  .score .big{font-size:4.2rem;font-weight:800;line-height:1;}
+  .score .big u{text-decoration:none;font-size:1.6rem;color:var(--ink-2);}
+  .score .msg{margin:14px auto 0;max-width:30em;font-size:.95rem;line-height:1.85;}
+  .score .sub{color:var(--ink-2);font-size:.8rem;margin-top:6px;}
+  .review{margin:18px 0 6px;display:flex;flex-direction:column;gap:8px;}
+  .review h2{font-size:.84rem;color:var(--ink-2);font-weight:700;margin:0 0 2px;}
+  .row{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--ng);border-radius:12px;}
+  .row summary{
+    list-style:none;cursor:pointer;padding:11px 14px;display:flex;justify-content:space-between;
+    align-items:center;gap:12px;font-size:1rem;
+  }
+  .row summary::-webkit-details-marker{display:none;}
+  .row summary small{display:block;font-size:.75rem;font-weight:400;color:var(--ink-2);}
+  .row summary .wq{font-size:.9rem;line-height:1.7;}
+  .row .mine{font-size:.8rem;color:var(--ink-2);text-align:right;line-height:1.5;flex:none;}
+  .row .mine b{display:block;color:var(--ok);font-size:1.05rem;font-weight:700;}
+  .row .open{display:block;color:var(--ok);font-size:.74rem;font-weight:600;}
+  .row[open] .open{visibility:hidden;}
+  .row-ex{padding:12px 14px 14px;border-top:1px solid var(--line);}
+  .acts{margin-top:auto;padding-top:20px;display:flex;flex-direction:column;gap:9px;}
+  .acts button{
+    height:54px;border-radius:14px;font-size:.98rem;font-weight:700;
+    background:var(--primary);color:#fff;
+  }
+  .acts button.ghost{background:var(--surface);border:1px solid var(--line);color:var(--ink);font-weight:600;}
+
+  /* ---- iPad などの大きい画面 ---- */
+  @media (min-width:700px){
+    #app{max-width:620px;padding:32px 28px calc(28px + env(safe-area-inset-bottom));}
+    #app.is-quiz{max-width:780px;padding-top:18px;padding-bottom:calc(16px + env(safe-area-inset-bottom));}
+    .title{font-size:1.6rem;}
+    .lead{font-size:1rem;}
+    .unit{padding:20px 22px;}
+    .unit b{font-size:1.2rem;}
+    .unit span{font-size:.92rem;}
+    .unit .mark{width:48px;height:48px;font-size:1.45rem;}
+    .unit .badge{font-size:.8rem;}
+    .count,.count button{font-size:.95rem;}
+    .count button{padding:10px 20px;}
+    .tip{font-size:.95rem;}
+    .bar{font-size:.95rem;}
+    .bar .quit{padding:8px 16px;font-size:.9rem;}
+    .dots i{height:8px;}
+    .main{gap:12px;margin-top:12px;}
+    .left{gap:12px;}
+    .q{font-size:2.8rem;padding:14px 18px;}
+    .q small{font-size:1.05rem;}
+    .q.word{font-size:1.32rem;padding:16px 20px;}
+    .q.word .tag{font-size:.82rem;}
+    .head{font-size:.92rem;}
+    .tools{gap:8px;}
+    .tools button{padding:8px 16px;font-size:.9rem;}
+    .work .ink{background-size:32px 32px;}
+    .ans{height:120px;}
+    .ans-row .pre{font-size:2rem;}
+    .ans-row .suf{font-size:1.5rem;}
+    .read .label{font-size:.95rem;}
+    .read.ok .label{font-size:1.25rem;}
+    .read .val{font-size:2.4rem;}
+    .keys{grid-template-columns:repeat(12,1fr);gap:8px;}
+    .keys button{height:54px;font-size:1.5rem;}
+    .go{min-height:62px;font-size:1.2rem;}
+    .explain{padding:18px 22px;}
+    .ex-top .mine{font-size:.95rem;}
+    .ex-top .correct{font-size:1.05rem;}
+    .ex-top .correct b{font-size:1.9rem;}
+    .hint{font-size:1.02rem;}
+    .ex-h h3,.ex-h .all{font-size:.95rem;}
+    .steps{gap:18px;}
+    .steps li{padding-left:40px;}
+    .steps li::before{width:28px;height:28px;font-size:.9rem;}
+    .steps p{font-size:1.08rem;}
+    .steps .m{font-size:1.4rem;}
+    .fig{max-width:520px;}
+    .fig figcaption{font-size:.85rem;}
+    .score .big{font-size:5.5rem;}
+    .score .msg{font-size:1.08rem;}
+    .score .sub{font-size:.92rem;}
+    .review h2{font-size:.95rem;}
+    .row summary{font-size:1.25rem;padding:14px 18px;}
+    .row summary small{font-size:.85rem;}
+    .row summary .wq{font-size:1.02rem;}
+    .row .mine{font-size:.9rem;}
+    .row .mine b{font-size:1.2rem;}
+    .row-ex{padding:14px 18px 18px;}
+    .acts button{height:64px;font-size:1.1rem;}
+  }
+  /* iPad 横向き：左に問題と計算スペース、右に答えと解説 */
+  @media (min-width:1000px) and (orientation:landscape){
+    #app.is-quiz{max-width:1200px;}
+    .main{flex-direction:row;gap:16px;}
+    .left{flex:1.4;min-width:0;}
+    .q{font-size:2.4rem;}
+    .right{flex:1;min-width:0;}
+    .right.explaining{flex:1;max-height:none;}
+    .ans{height:140px;}
+    .keys{grid-template-columns:repeat(3,1fr);}
+    .keys button{height:52px;}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+
+  /* ---- 理科ドリルと共通の部品（選択肢・思い出す問題など） ---- */
+  .top-row{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+  .switch{
+    flex:none;padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);
+    color:var(--ink-2);font-size:.8rem;font-weight:600;text-decoration:none;
+  }
+  .unit .mark{font-size:1.35rem;}
+  .q.word .item{
+    display:block;margin-top:8px;padding:6px 12px;border-radius:10px;background:var(--bg);
+    font-size:1.35em;font-weight:700;text-align:center;
+  }
+  /* 選択肢 */
+  .choices{display:grid;grid-template-columns:1fr;gap:8px;}
+  .choice{
+    display:flex;align-items:center;gap:12px;min-height:54px;padding:10px 14px;text-align:left;
+    background:var(--surface);border:2px solid var(--line);border-radius:12px;font-size:1.02rem;font-weight:600;color:var(--ink);line-height:1.45;
+  }
+  .choice .key{
+    flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;
+    background:var(--surface-2);color:var(--ink-2);font-size:.8rem;font-weight:700;font-family:"Helvetica Neue",Arial,sans-serif;
+  }
+  .choice[aria-pressed="true"]{border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary);}
+  .choice[aria-pressed="true"] .key{background:var(--primary);color:#fff;}
+  .choice:disabled{opacity:1;cursor:default;}
+  .choice.is-ok{border-color:var(--ok);background:var(--ok-soft);}
+  .choice.is-ok .key{background:var(--ok);color:#fff;}
+  .choice.is-ok::after{content:'○ 正しい答え';margin-left:auto;flex:none;color:var(--ok);font-size:.8rem;font-weight:700;}
+  .choice.is-ng{border-color:var(--ng);background:var(--ng-soft);}
+  .choice.is-ng .key{background:var(--ng);color:#fff;}
+  .choice.is-ng::after{content:'きみの答え';margin-left:auto;flex:none;color:var(--ng);font-size:.8rem;font-weight:700;}
+  /* 選択肢の問題でまちがえたときは、選択肢も解説も見えるように */
+  .right.explaining.is-choice .choices{grid-template-columns:1fr 1fr;}
+  .right.explaining.is-choice .choice{min-height:44px;padding:6px 10px;font-size:.9rem;}
+  .right.explaining.is-choice .choice::after{display:none;}
+  /* 思い出す問題 */
+  .recall-box{
+    display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;min-height:150px;padding:18px;text-align:center;
+    background:var(--surface);border:2px dashed var(--line);border-radius:14px;
+  }
+  .recall-say{margin:0;font-size:1rem;line-height:1.9;color:var(--ink-2);}
+  .recall-say b{color:var(--ink);}
+  .recall-label{margin:0;font-size:.8rem;color:var(--ink-2);font-weight:700;}
+  .recall-ans{margin:0;font-size:2rem;font-weight:800;color:var(--ok);}
+  .recall-q{margin:4px 0 0;font-size:.9rem;color:var(--ink-2);}
+  .self{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .self button{min-height:58px;border-radius:14px;font-size:1.02rem;font-weight:700;}
+  .self .self-ok{background:var(--ok);color:#fff;}
+  .self .self-ng{background:var(--surface);color:var(--ng);box-shadow:inset 0 0 0 2px var(--ng);}
+  .ex-top .mine b,.ex-top .correct b{font-family:inherit;}
+  @media (min-width:700px){
+    .switch{font-size:.92rem;padding:8px 18px;}
+    .unit .mark{font-size:1.6rem;}
+    .choices{grid-template-columns:1fr 1fr;gap:10px;}
+    .choice{min-height:64px;font-size:1.12rem;}
+    .recall-box{min-height:190px;}
+    .recall-say{font-size:1.15rem;}
+    .recall-ans{font-size:2.6rem;}
+    .self button{min-height:64px;font-size:1.12rem;}
+  }
+  @media (min-width:1000px) and (orientation:landscape){
+    .choices{grid-template-columns:1fr;}
+    .right.explaining.is-choice .choices{grid-template-columns:1fr 1fr;}
+  }
+
+  /* ---- 社会ドリルだけで使う部品 ---- */
+  .switches{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;}
+  /* 用語の説明は文が長いので、問題文の中では行間を広くする */
+  .q.word .sent{
+    display:block;margin-top:8px;padding:8px 14px;border-radius:10px;background:var(--bg);
+    font-size:1.05em;font-weight:600;line-height:1.9;
+  }
+  .q.word .mean{display:block;margin-top:6px;font-size:.85em;color:var(--ink-2);}
+  /* 資料（雨温図）。左がわに出す */
+  .shiryo{flex:0 0 auto;padding:10px 12px 6px;}
+  .shiryo h3{margin:0 0 2px;font-size:.82rem;color:var(--ink-2);font-weight:700;}
+  .shiryo .cap{margin:0 0 4px;font-size:.72rem;color:var(--ink-2);}
+  .ondan{display:block;width:100%;height:auto;max-height:220px;}
+  .ondan .bar{fill:#BBD4EE;}
+  .ondan .tl{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;}
+  .ondan .td{fill:var(--ink);}
+  .ondan .gl{stroke:var(--line);stroke-width:1;}
+  .ondan .axis{stroke:var(--ink-2);stroke-width:1.5;}
+  .ondan .ax{font-family:"Helvetica Neue",Arial,sans-serif;font-size:11px;fill:var(--ink-2);}
+  .left.has-shiryo .work{min-height:100px;}
+  /* 用語を漢字で書くマス（国語ドリルと同じ） */
+  .write-row{display:flex;gap:10px;align-items:stretch;}
+  .write-box{flex:1;height:190px;}
+  .write-box::after{
+    content:'';position:absolute;inset:12px;pointer-events:none;border-radius:6px;
+    background:linear-gradient(var(--line),var(--line)) center/100% 1px no-repeat,linear-gradient(var(--line),var(--line)) center/1px 100% no-repeat;
+    opacity:.6;
+  }
+  .model{
+    flex:0 0 42%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;padding:10px;text-align:center;
+    background:var(--ok-soft);border-radius:14px;
+  }
+  .model-ch{margin:0;font-size:2.2rem;font-weight:700;line-height:1.3;color:var(--ink);}
+  @media (min-width:700px){
+    .ondan{max-height:300px;}
+    .shiryo h3{font-size:.92rem;}
+    .shiryo .cap{font-size:.8rem;}
+    .write-box{height:230px;}
+    .model-ch{font-size:2.8rem;}
+  }
+  @media (min-width:1000px) and (orientation:landscape){
+    .write-box{height:210px;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ============================================================
+   1. 問題を作る部分
+      問題は次の形のどれか。どれも { unit, type, text, answer, steps } を持つ。
+        type:'num'    … 数字で答える（手書きかキー）。時差・人口密度・世紀などの計算
+        type:'choice' … 選択肢から選ぶ（choices に選択肢）
+        type:'recall' … 頭の中で思い出してから「答えを見る」を押し、自分で ○× をつける
+        type:'write'  … 大きなマスに用語を漢字で書いてから「答えを見る」を押し、お手本とくらべて ○× をつける
+      shiryo があるときは、左がわに資料（雨温図）を表示する。
+      steps は、まちがえたときに見せる「とき方」。{ say: 説明, math: 式 } の配列。
+
+      社会の用語は乱数だけでは作れないので、理科・国語ドリルと同じく
+      きまり（用語・分類・年表・気候の資料）をデータで持ち、
+      出し方・選択肢の組み合わせ・順番を毎回かえて問題を作る。
+      計算問題は、答えを先に決めてから数を作るので、答えは必ず整数になる。
+   ============================================================ */
+
+// a以上b以下の整数をランダムに1つ返す
+function rnd(a, b){ return Math.floor(Math.random() * (b - a + 1)) + a; }
+// 配列からランダムに1つ
+function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+// 配列をまぜる
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+// 負の数を「−7」のように全角マイナスで表す
+function numText(n){ return n < 0 ? '−' + Math.abs(n) : String(n); }
+function answerStep(s){ return { say: '<b>答え</b>　' + s }; }
+// 正しい答えと、まちがいの候補から、選択肢を4つ（足りなければあるだけ）作る
+function makeChoices(answer, pool){
+  return shuffle([answer, ...shuffle([...new Set(pool.filter(x => x !== answer))]).slice(0, 3)]);
+}
+// 経度を「東経135度」のように表す
+function lonText(e){ return e === 0 ? '経度0度' : (e > 0 ? '東経' : '西経') + Math.abs(e) + '度'; }
+
+/* ---- 計算問題（答えは必ず整数。答えを先に決めてから問題を作る）---- */
+
+const JP_LON = 135;   // 日本の標準時子午線（兵庫県明石市を通る東経135度）
+// 標準時子午線が 15 の倍数で、教科書によく出てくる都市
+const CITIES = [
+  { n:'ロンドン',         e:0 },
+  { n:'カイロ',           e:30 },
+  { n:'モスクワ',         e:45 },
+  { n:'ペキン（北京）',   e:120 },
+  { n:'シドニー',         e:150 },
+  { n:'リオデジャネイロ', e:-45 },
+  { n:'ニューヨーク',     e:-75 },
+  { n:'シカゴ',           e:-90 },
+  { n:'ロサンゼルス',     e:-120 }
+];
+// 経度の差を出す式（西経は、本初子午線をまたぐのでたし算になる）
+function lonGap(e){ return Math.abs(JP_LON - e); }
+function lonGapMath(e){
+  if (e < 0) return `${JP_LON} ＋ ${Math.abs(e)} ＝ ${lonGap(e)}（度）`;
+  return `${Math.max(JP_LON, e)} － ${Math.min(JP_LON, e)} ＝ ${lonGap(e)}（度）`;
+}
+function lonGapSay(e){
+  return e >= 0
+    ? '2つの都市の<b>経度の差</b>を求めます。どちらも東経なので、大きいほうから小さいほうをひきます。'
+    : '2つの都市の<b>経度の差</b>を求めます。<b>東経と西経のときは、0度の線（本初子午線）をまたぐのでたし算</b>です。';
+}
+
+// 時差を求める
+function calcTimeDiff(){
+  const c = pick(CITIES), gap = lonGap(c.e), h = gap / 15;
+  return { unit:'sekai', type:'num', suffix:'時間', answer:h,
+    text: `日本の標準時子午線は東経135度、${c.n}の標準時子午線は${lonText(c.e)}です。日本と${c.n}の時差は何時間ですか。`,
+    steps: [
+      { say: '<b>地球は24時間で1回転（360度）する</b>ので、<b>経度15度で1時間</b>の時差が生まれます。', math: '360 ÷ 24 ＝ 15（度で1時間）' },
+      { say: lonGapSay(c.e), math: lonGapMath(c.e) },
+      { say: '経度の差を15でわると、時差が出ます。', math: `${gap} ÷ 15 ＝ ${h}` },
+      answerStep(`${h} 時間`)
+    ] };
+}
+// 現地の時刻を求める
+function calcLocalTime(){
+  const c = pick(CITIES.filter(x => x.e !== JP_LON)), h = (JP_LON - c.e) / 15;
+  const jp = rnd(0, 23), raw = jp - h, local = ((raw % 24) + 24) % 24;
+  const ahead = h > 0;   // 日本のほうが時刻が進んでいる
+  const day = raw < 0 ? '前日' : raw > 23 ? '翌日' : '同じ日';
+  return { unit:'sekai', type:'num', suffix:'時', answer:local,
+    text: `日本（東経135度）が5月10日の${jp}時のとき、${c.n}（${lonText(c.e)}）は何時ですか。24時制で答えましょう。`,
+    steps: [
+      { say: '<b>経度15度で1時間</b>の時差。まず経度の差から時差を出します。', math: [lonGapMath(c.e), `${lonGap(c.e)} ÷ 15 ＝ ${Math.abs(h)}（時間）`] },
+      { say: `<b>東にある地点ほど、時刻が先に進んでいる</b>。${ahead ? `日本のほうが東にあるので、${c.n}は日本より ${Math.abs(h)} 時間おくれています。` : `${c.n}のほうが東にあるので、${c.n}は日本より ${Math.abs(h)} 時間進んでいます。`}` },
+      { say: `日本の時刻から、時差を${ahead ? 'ひき' : 'たし'}ます。`, math: `${jp} ${ahead ? '－' : '＋'} ${Math.abs(h)} ＝ ${numText(raw)}` },
+      day === '同じ日'
+        ? { say: '0時から23時の間におさまったので、日付は<b>同じ日</b>です。', math: `${local} 時（5月10日）` }
+        : day === '前日'
+          ? { say: '<b>0時より前になったので、24時間をたして前日の時刻</b>と考えます。', math: `${numText(raw)} ＋ 24 ＝ ${local}（5月9日の ${local} 時）` }
+          : { say: '<b>24時をこえたので、24時間をひいて翌日の時刻</b>と考えます。', math: `${raw} － 24 ＝ ${local}（5月11日の ${local} 時）` },
+      answerStep(`${local} 時`)
+    ] };
+}
+
+// 標準時子午線の経度を求める
+function calcMeridian(){
+  const h = rnd(1, 8), e = JP_LON - 15 * h;
+  return { unit:'sekai', type:'num', suffix:'度', answer:e,
+    text: `日本より時刻が ${h} 時間おくれている国があります。この国の標準時子午線は、東経何度ですか。`,
+    steps: [
+      { say: `<b>経度15度で1時間</b>の時差。まず、${h} 時間の差が経度何度分にあたるかを出します。`, math: `15 × ${h} ＝ ${15 * h}（度）` },
+      { say: '<b>時刻がおくれている国は、日本より西にある</b>ので、日本の東経135度から経度の差をひきます。', math: `${JP_LON} － ${15 * h} ＝ ${e}` },
+      answerStep(`東経 ${e} 度`)
+    ] };
+}
+
+// 地形図の縮尺
+function calcScale(){
+  const s = pick([25000, 50000]), name = s === 25000 ? '2万5千分の1' : '5万分の1', cm = rnd(2, 8), m = cm * s / 100;
+  if (Math.random() < 0.5){
+    return { unit:'sekai', type:'num', suffix:'m', answer:m,
+      text: `${name}の地形図があります。この地図上で ${cm} cm の長さは、実際には何 m ですか。`,
+      steps: [
+        { say: `<b>実際の距離 ＝ 地図上の長さ × 縮尺の分母</b>。${name}の地図なので、${s} をかけます。`, math: `${cm} × ${s} ＝ ${cm * s}（cm）` },
+        { say: '<b>1 m ＝ 100 cm</b> なので、100 でわって m に直します。', math: `${cm * s} ÷ 100 ＝ ${m}` },
+        answerStep(`${m} m`)
+      ] };
+  }
+  return { unit:'sekai', type:'num', suffix:'cm', answer:cm,
+    text: `${name}の地形図があります。実際の距離が ${m} m のとき、地図上では何 cm になりますか。`,
+    steps: [
+      { say: '同じ単位にそろえます。<b>1 m ＝ 100 cm</b>。', math: `${m} × 100 ＝ ${m * 100}（cm）` },
+      { say: `<b>地図上の長さ ＝ 実際の距離 ÷ 縮尺の分母</b>。${name}の地図なので、${s} でわります。`, math: `${m * 100} ÷ ${s} ＝ ${cm}` },
+      answerStep(`${cm} cm`)
+    ] };
+}
+
+// 人口密度
+function calcDensity(){
+  const d = pick([3, 10, 25, 40, 80, 120, 150, 200, 250, 340]), a = rnd(2, 50), p = d * a;
+  if (Math.random() < 0.5){
+    return { unit:'kurashi', type:'num', suffix:'人', answer:d,
+      text: `人口が ${p} 万人、面積が ${a} 万 km² の国があります。この国の人口密度は、1 km² あたり何人ですか。`,
+      steps: [
+        { say: '<b>人口密度 ＝ 人口 ÷ 面積</b>（1 km² あたりに何人が住んでいるか）です。', math: '人口密度（人/km²）＝ 人口（人）÷ 面積（km²）' },
+        { say: '人口も面積も「万」の単位なので、<b>そのままわり算</b>できます。', math: `${p} ÷ ${a} ＝ ${d}` },
+        answerStep(`${d} 人/km²`)
+      ] };
+  }
+  return { unit:'kurashi', type:'num', suffix:'万人', answer:p,
+    text: `面積が ${a} 万 km²、人口密度が 1 km² あたり ${d} 人の国があります。この国の人口は何万人ですか。`,
+    steps: [
+      { say: '<b>人口密度 ＝ 人口 ÷ 面積</b> なので、形をかえると <b>人口 ＝ 人口密度 × 面積</b> です。' },
+      { say: '数を入れて計算します（面積が「万 km²」なので、答えも「万人」で出ます）。', math: `${d} × ${a} ＝ ${p}` },
+      answerStep(`${p} 万人`)
+    ] };
+}
+
+// 輸出額にしめる割合
+function calcShare(){
+  const total = 100 * rnd(3, 40), pct = pick([5, 10, 15, 20, 25, 30, 40, 50]), v = total * pct / 100;
+  const item = pick(['機械類', '自動車', '原油', '衣類', 'コーヒー豆']);
+  if (Math.random() < 0.5){
+    return { unit:'kurashi', type:'num', suffix:'億ドル', answer:v,
+      text: `ある国の輸出総額は ${total} 億ドルで、そのうち${item}が ${pct} % をしめています。${item}の輸出額は何億ドルですか。`,
+      steps: [
+        { say: '<b>くらべる量 ＝ もとにする量 × 割合</b>。もとにする量は輸出総額です。' },
+        { say: `${pct} % は、100 でわって小数（または分数）に直して計算します。`, math: `${total} × ${pct} ÷ 100 ＝ ${v}` },
+        answerStep(`${v} 億ドル`)
+      ] };
+  }
+  return { unit:'kurashi', type:'num', suffix:'%', answer:pct,
+    text: `ある国の輸出総額は ${total} 億ドルで、そのうち${item}が ${v} 億ドルです。${item}は輸出総額の何 % をしめていますか。`,
+    steps: [
+      { say: '<b>割合 ＝ くらべる量 ÷ もとにする量</b>。% にするので、さらに 100 をかけます。' },
+      { say: '数を入れて計算します。', math: `${v} ÷ ${total} × 100 ＝ ${pct}` },
+      answerStep(`${pct} %`)
+    ] };
+}
+
+// 何世紀かを求める
+function calcCentury(unit){
+  const ev = pick(EVENTS.filter(e => e.unit === unit)), c = Math.ceil(ev.y / 100);
+  return { unit, type:'num', suffix:'世紀', answer:c,
+    text: `${ev.name}のは ${ev.y} 年です。${ev.y} 年は何世紀ですか。`,
+    steps: [
+      { say: '<b>1年〜100年が1世紀、101年〜200年が2世紀</b>。100年ずつのまとまりで数えます。' },
+      { say: '<b>下2けたが「00」以外のときは、上のけたに1をたす</b>と世紀になります（ちょうど「00」のときは、上のけたがそのまま世紀）。',
+        math: ev.y % 100 === 0 ? `${ev.y} 年 → ${ev.y / 100} 世紀` : `${Math.floor(ev.y / 100)} ＋ 1 ＝ ${c}（世紀）` },
+      answerStep(`${c} 世紀`)
+    ] };
+}
+
+// 2つのできごとの間の年数
+function calcYearGap(unit){
+  const list = shuffle(EVENTS.filter(e => e.unit === unit)).slice(0, 2).sort((a, b) => a.y - b.y);
+  const [a, b] = list, gap = b.y - a.y;
+  return { unit, type:'num', suffix:'年', answer:gap,
+    text: `${a.name}のは ${a.y} 年、${b.name}のは ${b.y} 年です。この2つのできごとの間は何年ですか。`,
+    steps: [
+      { say: '<b>あとの年 － 前の年</b> で、間の年数が出ます。' },
+      { say: '数を入れて計算します。', math: `${b.y} － ${a.y} ＝ ${gap}` },
+      answerStep(`${gap} 年`)
+    ] };
+}
+
+const CALC = {
+  sekai:   [calcTimeDiff, calcLocalTime, calcMeridian, calcScale],
+  kurashi: [calcDensity, calcShare],
+  kodai:   [calcCentury, calcYearGap],
+  chusei:  [calcCentury, calcYearGap]
+};
+
+/* ---- 年表（歴史の計算問題と、順番の問題に使う）----
+   { unit, y: 年, name: できごと（「〜のは○年です」の形で使う）, era: 時代 } */
+const EVENTS = [
+  { unit:'kodai',  y:239,  name:'邪馬台国の卑弥呼が魏に使いを送った',       era:'弥生時代' },
+  { unit:'kodai',  y:593,  name:'聖徳太子が推古天皇の摂政になった',         era:'飛鳥時代' },
+  { unit:'kodai',  y:604,  name:'十七条の憲法が定められた',                 era:'飛鳥時代' },
+  { unit:'kodai',  y:607,  name:'小野妹子が遣隋使として送られた',           era:'飛鳥時代' },
+  { unit:'kodai',  y:645,  name:'大化の改新が始まった',                     era:'飛鳥時代' },
+  { unit:'kodai',  y:701,  name:'大宝律令が定められた',                     era:'飛鳥時代' },
+  { unit:'kodai',  y:710,  name:'都が平城京に移された',                     era:'奈良時代' },
+  { unit:'kodai',  y:743,  name:'墾田永年私財法が出された',                 era:'奈良時代' },
+  { unit:'kodai',  y:794,  name:'都が平安京に移された',                     era:'平安時代' },
+  { unit:'kodai',  y:894,  name:'遣唐使が停止された',                       era:'平安時代' },
+  { unit:'kodai',  y:1016, name:'藤原道長が摂政になった',                   era:'平安時代' },
+  { unit:'kodai',  y:1086, name:'白河上皇が院政を始めた',                   era:'平安時代' },
+  { unit:'chusei', y:1167, name:'平清盛が武士として初めて太政大臣になった', era:'平安時代' },
+  { unit:'chusei', y:1185, name:'壇ノ浦の戦いで平氏がほろびた',             era:'平安時代' },
+  { unit:'chusei', y:1192, name:'源頼朝が征夷大将軍になった',               era:'鎌倉時代' },
+  { unit:'chusei', y:1221, name:'承久の乱が起こった',                       era:'鎌倉時代' },
+  { unit:'chusei', y:1232, name:'御成敗式目が定められた',                   era:'鎌倉時代' },
+  { unit:'chusei', y:1274, name:'文永の役（1度目の元寇）が起こった',        era:'鎌倉時代' },
+  { unit:'chusei', y:1281, name:'弘安の役（2度目の元寇）が起こった',        era:'鎌倉時代' },
+  { unit:'chusei', y:1333, name:'鎌倉幕府がほろびた',                       era:'鎌倉時代' },
+  { unit:'chusei', y:1338, name:'足利尊氏が征夷大将軍になった',             era:'室町時代' },
+  { unit:'chusei', y:1392, name:'足利義満が南北朝を統一した',               era:'室町時代' },
+  { unit:'chusei', y:1404, name:'勘合貿易（日明貿易）が始まった',           era:'室町時代' },
+  { unit:'chusei', y:1467, name:'応仁の乱が始まった',                       era:'室町時代' }
+];
+
+/* ---- 用語のデータ ----
+   { unit, group, term, desc（「〜を何といいますか」の「〜」）, note（とき方で見せる補足）, y?（読み。あるものは「漢字で書く」問題にも出る）}
+   選択肢のまちがいは、同じ group の用語から選ぶので、group ごとに4つ以上あるとよい */
+const TERMS = [
+  // ---- 世界と日本のすがた ----
+  { unit:'sekai', group:'chikyu', term:'赤道', y:'せきどう', desc:'緯度0度の、地球を南北に分ける線', note:'赤道より北が<b>北緯</b>、南が<b>南緯</b>で、それぞれ90度まであります。' },
+  { unit:'sekai', group:'chikyu', term:'本初子午線', desc:'イギリスのロンドン（旧グリニッジ天文台）を通る、経度0度の線', note:'ここより東が<b>東経</b>、西が<b>西経</b>で、それぞれ180度まであります。' },
+  { unit:'sekai', group:'chikyu', term:'日付変更線', desc:'ほぼ180度の経線に沿って引かれた、日付を調整するための線', note:'<b>西から東へこえるときは日付を1日もどし</b>、東から西へこえるときは1日進めます。' },
+  { unit:'sekai', group:'chikyu', term:'標準時子午線', desc:'その国が時刻の基準にしている経線', note:'日本は<b>兵庫県明石市を通る東経135度</b>です。' },
+  { unit:'sekai', group:'chikyu', term:'時差', y:'じさ', desc:'2つの地点の標準時のちがい', note:'地球は1日（24時間）で1回転（360度）するので、<b>経度15度で1時間</b>の差になります。' },
+  { unit:'sekai', group:'chikyu', term:'緯線', y:'いせん', desc:'赤道に平行に引かれた、同じ緯度を結ぶ線', note:'北極と南極を結ぶ、同じ経度の線は<b>経線</b>です。' },
+  { unit:'sekai', group:'ryodo', term:'領海', y:'りょうかい', desc:'海岸線から12海里（約22km）までの海で、その国の主権がおよぶ範囲', note:'国の<b>領域は、領土・領海・領空</b>の3つです。' },
+  { unit:'sekai', group:'ryodo', term:'排他的経済水域', desc:'領海の外側の、海岸線から200海里までの海で、水産資源や鉱産資源を自国のものにできる範囲', note:'日本は島が多いので、<b>国土面積のわりに排他的経済水域が広い</b>です。' },
+  { unit:'sekai', group:'ryodo', term:'領空', y:'りょうくう', desc:'領土と領海の上空で、その国の主権がおよぶ範囲', note:'大気圏の外の宇宙空間はふくまれません。' },
+  { unit:'sekai', group:'ryodo', term:'北方領土', desc:'択捉島・国後島・色丹島・歯舞群島からなる、ロシアが不法に占拠している日本固有の領土', note:'島根県の<b>竹島</b>は韓国が不法に占拠しています。沖縄県の<b>尖閣諸島</b>は日本が有効に支配していて、領土問題はありません。' },
+  { unit:'sekai', group:'hashi', term:'択捉島', desc:'日本の<b>北</b>のはしにある島', note:'北方領土の1つで、日本最大の島は本州、北のはしの島がこの島です。' },
+  { unit:'sekai', group:'hashi', term:'南鳥島', desc:'日本の<b>東</b>のはしにある島', note:'東京都に属します。名前に「南」とありますが、<b>東</b>のはしです。' },
+  { unit:'sekai', group:'hashi', term:'沖ノ鳥島', desc:'日本の<b>南</b>のはしにある島', note:'波にけずられて水没しないよう護岸工事が行われました。この島がなくなると、広い<b>排他的経済水域</b>を失うからです。' },
+  { unit:'sekai', group:'hashi', term:'与那国島', desc:'日本の<b>西</b>のはしにある島', note:'沖縄県に属します。' },
+  { unit:'sekai', group:'chizu', term:'等高線', y:'とうこうせん', desc:'地形図で、海面から同じ高さの地点を結んだ線', note:'<b>間かくがせまいほど傾きが急</b>、広いほどゆるやかです。' },
+  { unit:'sekai', group:'chizu', term:'縮尺', y:'しゅくしゃく', desc:'実際の距離を、地図の上でどれだけ縮めて表しているかの割合', note:'<b>実際の距離 ＝ 地図上の長さ × 縮尺の分母</b>。' },
+  { unit:'sekai', group:'chizu', term:'メルカトル図法', desc:'経線と緯線が直角に交わり、航海図に使われてきた地図', note:'角度は正しいが、<b>高緯度ほど面積が大きく</b>表されます。' },
+  { unit:'sekai', group:'chizu', term:'正距方位図法', desc:'中心からの距離と方位が正しく表され、航空図に使われる地図', note:'中心以外の2点の間の距離や方位は正しくありません。' },
+  { unit:'sekai', group:'chizu', term:'モルワイデ図法', desc:'面積が正しく表され、分布図によく使われる地図', note:'' },
+
+  // ---- 世界の人々のくらしと諸地域 ----
+  { unit:'kurashi', group:'kikou', term:'熱帯', y:'ねったい', desc:'一年中気温が高く、季節による気温の変化が小さい気候帯', note:'一年中雨が多い<b>熱帯雨林気候</b>と、雨季と乾季がある<b>サバナ気候</b>に分かれます。' },
+  { unit:'kurashi', group:'kikou', term:'乾燥帯', y:'かんそうたい', desc:'降水量がとても少なく、樹木がほとんど育たない気候帯', note:'ほとんど雨のふらない<b>砂漠気候</b>と、わずかに雨がふって草原が広がる<b>ステップ気候</b>に分かれます。' },
+  { unit:'kurashi', group:'kikou', term:'温帯', y:'おんたい', desc:'四季の変化があり、気温も降水量も適度な気候帯', note:'<b>温暖湿潤気候</b>（日本など）、<b>西岸海洋性気候</b>（西ヨーロッパ）、<b>地中海性気候</b>（夏に乾燥）に分かれます。' },
+  { unit:'kurashi', group:'kikou', term:'亜寒帯', y:'あかんたい', desc:'冬の寒さがきびしく、夏と冬の気温の差が大きい気候帯', note:'冷帯ともいい、<b>タイガ</b>とよばれる針葉樹林が広がります。' },
+  { unit:'kurashi', group:'kikou', term:'寒帯', y:'かんたい', desc:'一年中気温が低く、樹木が育たない気候帯', note:'夏だけこけ類が育つ<b>ツンドラ気候</b>と、一年中雪と氷におおわれる<b>氷雪気候</b>に分かれます。' },
+  { unit:'kurashi', group:'kurasi', term:'遊牧', y:'ゆうぼく', desc:'水や草を求めて、家畜とともに移動しながらくらす牧畜', note:'モンゴルでは、移動しやすい住居<b>ゲル</b>が使われます。' },
+  { unit:'kurashi', group:'kurasi', term:'ゲル', desc:'モンゴルの遊牧民が使う、羊の毛のフェルトでつくった組み立て式の住居', note:'' },
+  { unit:'kurashi', group:'kurasi', term:'日干しれんが', desc:'雨の少ない乾燥した地域で、土をこねて日光でかわかしてつくる建材', note:'木が少ない地域のくふうで、昼の強い日ざしや夜の冷えこみをふせぎます。' },
+  { unit:'kurashi', group:'kurasi', term:'高床の住居', desc:'東南アジアなどで、湿気や熱、洪水をふせぐために床を地面から高くした住居', note:'' },
+  { unit:'kurashi', group:'kurasi', term:'焼畑農業', desc:'森林を焼いて、その灰を肥料にして作物を育てる農業', note:'数年たつと土地がやせるので、場所を移します。' },
+  { unit:'kurashi', group:'shukyo', term:'キリスト教', desc:'イエスの教えをもとにし、ヨーロッパや南北アメリカで広く信仰されている宗教', note:'教典は<b>聖書</b>。日曜日に教会で礼拝します。' },
+  { unit:'kurashi', group:'shukyo', term:'イスラム教', desc:'ムハンマドが開き、西アジアや北アフリカ、東南アジアの一部に広がっている宗教', note:'教典は<b>コーラン</b>。<b>豚肉を食べず、酒を飲まない</b>。1日5回、聖地<b>メッカ</b>の方角に祈ります。' },
+  { unit:'kurashi', group:'shukyo', term:'仏教', y:'ぶっきょう', desc:'シャカ（釈迦）が開き、東アジアや東南アジアに広がっている宗教', note:'' },
+  { unit:'kurashi', group:'shukyo', term:'ヒンドゥー教', desc:'インドで最も多くの人が信仰している宗教', note:'<b>牛を神聖な動物</b>とし、牛肉を食べません。' },
+  { unit:'kurashi', group:'asia', term:'経済特区', y:'けいざいとっく', desc:'中国が外国の企業を受け入れるため、税金を安くするなどの特別な条件をつくった地域', note:'シェンチェンなど、南部の沿海部に置かれました。' },
+  { unit:'kurashi', group:'asia', term:'一人っ子政策', desc:'中国で人口の増加をおさえるために行われていた、子どもの数を制限する政策', note:'高齢化が進んだため、2015年に廃止されました。' },
+  { unit:'kurashi', group:'asia', term:'ASEAN', desc:'東南アジアの国々が、経済や政治で協力するためにつくった組織', note:'日本語では<b>東南アジア諸国連合</b>といいます。' },
+  { unit:'kurashi', group:'asia', term:'プランテーション', desc:'植民地時代につくられた、輸出用の作物を大規模に栽培する農園', note:'天然ゴム・油やし・コーヒーなど、1種類の作物を大量につくります。' },
+  { unit:'kurashi', group:'asia', term:'季節風', y:'きせつふう', desc:'夏と冬で向きが変わる風で、東アジア・南アジアの気候や稲作に大きな影響をあたえるもの', note:'モンスーンともいいます。夏は海から、冬は大陸からふきます。' },
+  { unit:'kurashi', group:'euro', term:'ヨーロッパ連合', desc:'ヨーロッパの国々が、政治や経済の結びつきを強めるためにつくった組織', note:'略称は<b>EU</b>。加盟国の間は、パスポートなしで移動でき、関税もかかりません。' },
+  { unit:'kurashi', group:'euro', term:'ユーロ', desc:'EUの多くの国で使われている共通の通貨', note:'両替がいらないので、国をこえた買い物や旅行が便利になりました。' },
+  { unit:'kurashi', group:'euro', term:'混合農業', y:'こんごうのうぎょう', desc:'小麦などの作物の栽培と、豚や牛などの家畜の飼育を組み合わせた農業', note:'ヨーロッパの中央部で広く行われています。' },
+  { unit:'kurashi', group:'euro', term:'地中海式農業', desc:'夏の乾燥に強いオリーブやぶどうを栽培し、雨のふる冬に小麦を栽培する農業', note:'イタリア・スペインなど地中海のまわりで行われています。' },
+  { unit:'kurashi', group:'euro', term:'偏西風', y:'へんせいふう', desc:'ヨーロッパの気候をおだやかにしている、西から東へふく風', note:'暖流の<b>北大西洋海流</b>の上をふくので、高緯度のわりに冬も温暖です。' },
+  { unit:'kurashi', group:'africa', term:'モノカルチャー経済', desc:'特定の農作物や鉱産資源の輸出にたよっている経済', note:'価格や天候の変化で収入が大きく変わるため、国の経済が不安定になりやすいです。' },
+  { unit:'kurashi', group:'africa', term:'レアメタル', desc:'埋蔵量が少なく、とり出すのがむずかしい希少な金属', note:'携帯電話やパソコンなどに使われ、アフリカに多く産出します。' },
+  { unit:'kurashi', group:'africa', term:'サハラ砂漠', desc:'アフリカ大陸の北部に広がる、世界最大の砂漠', note:'' },
+  { unit:'kurashi', group:'africa', term:'砂漠化', y:'さばくか', desc:'干ばつや、木の切りすぎ・家畜の放牧のしすぎで、土地が草木の育たない状態になること', note:'サハラ砂漠の南のふちの<b>サヘル</b>で深刻です。' },
+  { unit:'kurashi', group:'africa', term:'アフリカ連合', desc:'アフリカの国々が、協力して問題を解決するためにつくった組織', note:'略称は<b>AU</b>。' },
+  { unit:'kurashi', group:'amerika', term:'適地適作', y:'てきちてきさく', desc:'その土地の気候や土壌に合った作物をつくる、アメリカの農業のしかた', note:'' },
+  { unit:'kurashi', group:'amerika', term:'企業的な農業', desc:'大型の機械を使い、広い農地で大量に生産する農業', note:'アメリカは「<b>世界の食料庫</b>」とよばれます。' },
+  { unit:'kurashi', group:'amerika', term:'シリコンバレー', desc:'アメリカのサンフランシスコ郊外にある、ICT関連の企業が集まる地域', note:'' },
+  { unit:'kurashi', group:'amerika', term:'ヒスパニック', desc:'メキシコや中央アメリカなどからアメリカに移り住んだ、スペイン語を話す人々', note:'' },
+  { unit:'kurashi', group:'minami', term:'アマゾン川', desc:'南アメリカ大陸を流れる、流域面積が世界最大の川', note:'流域には広大な熱帯林（セルバ）が広がっています。' },
+  { unit:'kurashi', group:'minami', term:'バイオエタノール', desc:'さとうきびやとうもろこしなどの植物を原料としてつくられる燃料', note:'ブラジルでさかんにつくられています。燃やしても、原料の植物が育つときに二酸化炭素を吸収しています。' },
+  { unit:'kurashi', group:'minami', term:'パンパ', desc:'アルゼンチンに広がる、小麦の栽培や牛の放牧がさかんな草原', note:'' },
+  { unit:'kurashi', group:'minami', term:'日系人', y:'にっけいじん', desc:'ブラジルなどに移り住んだ日本人と、その子孫', note:'ブラジルには世界で最も多くの日系人が住んでいます。' },
+  { unit:'kurashi', group:'oceania', term:'白豪主義', desc:'かつてオーストラリアで行われていた、ヨーロッパ系以外の移民を制限する政策', note:'今は多くの文化を尊重する<b>多文化社会</b>をめざしています。' },
+  { unit:'kurashi', group:'oceania', term:'アボリジニ', desc:'オーストラリアの先住民', note:'' },
+  { unit:'kurashi', group:'oceania', term:'マオリ', desc:'ニュージーランドの先住民', note:'' },
+  { unit:'kurashi', group:'oceania', term:'露天掘り', desc:'地表をうずまき状にけずって、鉄鉱石や石炭をほり出す方法', note:'オーストラリアの鉱山で行われています。' },
+
+  // ---- 古代までの日本 ----
+  { unit:'kodai', group:'bunmei', term:'メソポタミア文明', desc:'ティグリス川とユーフラテス川の流域におこった文明', note:'<b>くさび形文字</b>、太陰暦、60進法が生まれました。' },
+  { unit:'kodai', group:'bunmei', term:'エジプト文明', desc:'ナイル川の流域におこり、ピラミッドがつくられた文明', note:'<b>象形文字</b>、太陽暦が生まれました。' },
+  { unit:'kodai', group:'bunmei', term:'インダス文明', desc:'インダス川の流域におこり、モヘンジョ・ダロなどの都市がつくられた文明', note:'' },
+  { unit:'kodai', group:'bunmei', term:'中国文明', desc:'黄河や長江の流域におこり、殷（商）で甲骨文字が使われた文明', note:'' },
+  { unit:'kodai', group:'bunmei', term:'儒教', y:'じゅきょう', desc:'紀元前6世紀ごろの中国で孔子が説いた、思いやり（仁）と礼を大切にする教え', note:'のちに日本にも伝わり、政治や学問に大きな影響をあたえました。' },
+  { unit:'kodai', group:'genshi', term:'縄文土器', y:'じょうもんどき', desc:'縄目の文様がつけられた、厚手で黒っぽい土器', note:'この土器が使われた時代が<b>縄文時代</b>。狩りや採集でくらしていました。' },
+  { unit:'kodai', group:'genshi', term:'貝塚', y:'かいづか', desc:'縄文時代の人々が、食べ物ののこりなどを捨てた場所', note:'当時の食べ物やくらしを知る手がかりになります。' },
+  { unit:'kodai', group:'genshi', term:'竪穴住居', desc:'地面を数十cmほり下げ、柱を立てて屋根をかけた住居', note:'縄文時代から長く使われました。' },
+  { unit:'kodai', group:'genshi', term:'弥生土器', y:'やよいどき', desc:'うすくてかたく、赤褐色で文様の少ない土器', note:'この土器が使われた時代が<b>弥生時代</b>。大陸から<b>稲作</b>が伝わりました。' },
+  { unit:'kodai', group:'genshi', term:'高床倉庫', desc:'収穫した稲を、ねずみや湿気からまもるためにくふうされた倉庫', note:'弥生時代の遺跡（登呂遺跡・吉野ヶ里遺跡など）から見つかっています。' },
+  { unit:'kodai', group:'genshi', term:'邪馬台国', desc:'3世紀ごろ、女王の卑弥呼が治めていたとされる国', note:'中国の歴史書<b>「魏志」倭人伝</b>に、239年に魏に使いを送り「親魏倭王」の称号を授けられたと書かれています。' },
+  { unit:'kodai', group:'kofun', term:'古墳', y:'こふん', desc:'王や豪族の墓としてつくられた、大きな盛り土の墓', note:'大阪府の大仙古墳（仁徳陵古墳）は、鍵あな形の<b>前方後円墳</b>で日本最大です。' },
+  { unit:'kodai', group:'kofun', term:'埴輪', y:'はにわ', desc:'古墳の上や周りに並べられた、素焼きの土製品', note:'人・馬・家などの形があります。' },
+  { unit:'kodai', group:'kofun', term:'渡来人', y:'とらいじん', desc:'中国や朝鮮半島から日本に移り住み、進んだ技術や文化を伝えた人々', note:'須恵器・機織り・漢字・儒教・仏教などを伝えました。' },
+  { unit:'kodai', group:'kofun', term:'大和政権', desc:'3世紀後半、奈良盆地を中心に生まれた有力な豪族の連合政権', note:'ヤマト王権ともいい、その王は<b>大王</b>とよばれました。' },
+  { unit:'kodai', group:'asuka', term:'冠位十二階', desc:'家がらによらず、能力のある人を役人に取り立てるために聖徳太子が定めた制度', note:'冠の色で位を表しました。' },
+  { unit:'kodai', group:'asuka', term:'十七条の憲法', desc:'役人の心構えを示すために聖徳太子が定めたきまり', note:'「和をもって貴しとなす」で始まり、仏教や天皇を敬うことを説いています。' },
+  { unit:'kodai', group:'asuka', term:'遣隋使', y:'けんずいし', desc:'中国の進んだ制度や文化を学ぶために、隋に送られた使者', note:'607年に<b>小野妹子</b>が送られました。' },
+  { unit:'kodai', group:'asuka', term:'大化の改新', desc:'中大兄皇子と中臣鎌足が蘇我氏をたおして始めた政治の改革', note:'土地と人民を国のものとする<b>公地公民</b>をめざしました。' },
+  { unit:'kodai', group:'asuka', term:'大宝律令', desc:'701年に定められた、唐の律令にならった法律', note:'<b>律は刑罰のきまり、令は政治のきまり</b>です。' },
+  { unit:'kodai', group:'nara', term:'班田収授法', desc:'戸籍にもとづいて、6歳以上の人に口分田をあたえた制度', note:'あたえられた田は、死ぬと国に返します。' },
+  { unit:'kodai', group:'nara', term:'口分田', y:'くぶんでん', desc:'班田収授法によって、6歳以上の人にあたえられた田', note:'' },
+  { unit:'kodai', group:'nara', term:'墾田永年私財法', desc:'743年に出された、新しく開墾した土地をいつまでも自分のものにしてよいと認めた法', note:'開墾を進めるためでしたが、<b>公地公民がくずれ、荘園</b>が広がるきっかけになりました。' },
+  { unit:'kodai', group:'nara', term:'天平文化', desc:'奈良時代に、遣唐使がもたらした唐の影響を受けて栄えた仏教文化', note:'東大寺の大仏、<b>正倉院</b>、「古事記」「日本書紀」「万葉集」。' },
+  { unit:'kodai', group:'nara', term:'正倉院', desc:'聖武天皇の遺品などが納められた、東大寺の校倉造の倉庫', note:'シルクロードを通って西アジアから伝わった宝物もあります。' },
+  { unit:'kodai', group:'heian', term:'摂関政治', desc:'藤原氏が、天皇の摂政や関白となって行った政治', note:'むすめを天皇のきさきにして力をのばし、11世紀前半の<b>藤原道長・頼通</b>のころが最も栄えました。' },
+  { unit:'kodai', group:'heian', term:'荘園', y:'しょうえん', desc:'貴族や寺社が所有した私有地', note:'税を納めなくてよい権利を持つものもあり、朝廷の収入が減る原因になりました。' },
+  { unit:'kodai', group:'heian', term:'国風文化', desc:'遣唐使の停止後、日本の風土や生活に合うように発達した文化', note:'<b>かな文字</b>、紫式部の「源氏物語」、清少納言の「枕草子」、大和絵、寝殿造。' },
+  { unit:'kodai', group:'heian', term:'かな文字', desc:'漢字をくずしたり一部をとったりしてつくられた、日本語の音を表す文字', note:'気持ちを細やかに表せるようになり、女性による文学が生まれました。' },
+  { unit:'kodai', group:'heian', term:'浄土信仰', desc:'阿弥陀如来にすがり、死後に極楽浄土へ生まれ変わることを願う信仰', note:'藤原頼通が建てた<b>平等院鳳凰堂</b>が代表的です。' },
+  { unit:'kodai', group:'heian', term:'院政', y:'いんせい', desc:'天皇の位をゆずった上皇が、政治の実権をにぎって行う政治', note:'1086年に<b>白河上皇</b>が始めました。' },
+
+  // ---- 武士の世の中（鎌倉・室町）----
+  { unit:'chusei', group:'kamakura', term:'守護', y:'しゅご', desc:'国ごとに置かれ、軍事や警察の仕事をした役職', note:'<b>守護は国ごと、地頭は荘園・公領ごと</b>。1185年、源頼朝が置きました。' },
+  { unit:'chusei', group:'kamakura', term:'地頭', y:'じとう', desc:'荘園や公領ごとに置かれ、年貢の取り立てや土地の管理をした役職', note:'<b>守護は国ごと、地頭は荘園・公領ごと</b>。' },
+  { unit:'chusei', group:'kamakura', term:'御恩と奉公', desc:'将軍が御家人の領地を保護し、御家人が将軍のために命がけで戦う、土地を通じた主従関係', note:'この関係でむすばれた武士のしくみを<b>封建制度</b>といいます。' },
+  { unit:'chusei', group:'kamakura', term:'執権', y:'しっけん', desc:'鎌倉幕府で、将軍を助けて政治を行った役職', note:'源氏の将軍が3代でとだえたあと、<b>北条氏</b>が代々この位について政治を行いました（執権政治）。' },
+  { unit:'chusei', group:'kamakura', term:'承久の乱', desc:'1221年、後鳥羽上皇が幕府をたおそうとして起こした戦い', note:'幕府が勝ち、京都に<b>六波羅探題</b>を置いて朝廷を監視しました。' },
+  { unit:'chusei', group:'kamakura', term:'御成敗式目', desc:'1232年に執権の北条泰時が定めた、武士のための最初の法律', note:'武士の慣習をまとめたもので、のちの武家の法律の手本になりました。' },
+  { unit:'chusei', group:'kamakura', term:'元寇', y:'げんこう', desc:'13世紀に、元の大軍が2度にわたって九州北部にせめてきたできごと', note:'<b>文永の役（1274年）と弘安の役（1281年）</b>。命がけで戦っても十分な恩賞がなく、御家人の生活は苦しくなりました。' },
+  { unit:'chusei', group:'k_bunka', term:'金剛力士像', desc:'東大寺南大門に置かれた、運慶らがつくった力強い彫刻', note:'武士の気風に合った、写実的で力強い鎌倉文化を代表します。' },
+  { unit:'chusei', group:'k_bunka', term:'平家物語', desc:'平氏の盛衰をえがき、琵琶法師によって語り伝えられた軍記物', note:'「祇園精舎の鐘の声…」で始まります。' },
+  { unit:'chusei', group:'k_bunka', term:'新古今和歌集', desc:'後鳥羽上皇の命令で、藤原定家らがまとめた和歌集', note:'' },
+  { unit:'chusei', group:'k_bunka', term:'浄土宗', y:'じょうどしゅう', desc:'法然が開いた、念仏（南無阿弥陀仏）をとなえれば救われると説いた宗派', note:'弟子の<b>親鸞</b>は、さらに教えを進めて<b>浄土真宗</b>を開きました。' },
+  { unit:'chusei', group:'k_bunka', term:'禅宗', y:'ぜんしゅう', desc:'座禅によってさとりを開こうとする仏教で、武士に広まったもの', note:'栄西の<b>臨済宗</b>、道元の<b>曹洞宗</b>があります。' },
+  { unit:'chusei', group:'muromachi', term:'建武の新政', desc:'鎌倉幕府がほろびたあと、後醍醐天皇が行った天皇中心の政治', note:'武士の不満が大きく、2年ほどでくずれました。' },
+  { unit:'chusei', group:'muromachi', term:'勘合貿易', desc:'足利義満が始めた、正式な貿易船と倭寇を区別する合い札を使った明との貿易', note:'日明貿易ともいいます。銅銭（明銭）や生糸を輸入しました。' },
+  { unit:'chusei', group:'muromachi', term:'倭寇', y:'わこう', desc:'中国や朝鮮の沿岸をおそった、海賊の集団', note:'' },
+  { unit:'chusei', group:'muromachi', term:'守護大名', desc:'守護が国内の武士を家来にして、一国を支配するようになったもの', note:'' },
+  { unit:'chusei', group:'muromachi', term:'応仁の乱', desc:'1467年、将軍のあとつぎ問題などから京都で11年間続いた戦乱', note:'京都は焼け野原になり、幕府の力は弱まって<b>戦国時代</b>が始まりました。' },
+  { unit:'chusei', group:'muromachi', term:'下剋上', desc:'身分が下の者が、実力で上の者に打ち勝つ風潮', note:'守護大名をたおした家来が<b>戦国大名</b>になりました。' },
+  { unit:'chusei', group:'muromachi', term:'分国法', y:'ぶんこくほう', desc:'戦国大名が、自分の領国を治めるために独自に定めたきまり', note:'けんかをした者は両方を罰する「けんか両成敗」などがあります。' },
+  { unit:'chusei', group:'minshu', term:'惣', y:'そう', desc:'室町時代に、農民が自分たちで村を運営するためにつくった組織', note:'寄合を開き、村のおきてを決めました。' },
+  { unit:'chusei', group:'minshu', term:'土一揆', y:'どいっき', desc:'農民が団結して、借金の帳消し（徳政）などを求めて起こした行動', note:'1428年の正長の土一揆が有名です。' },
+  { unit:'chusei', group:'minshu', term:'座', y:'ざ', desc:'商工業者が、営業を独占するためにつくった同業者の団体', note:'貴族や寺社に税を納め、保護を受けました。' },
+  { unit:'chusei', group:'minshu', term:'馬借', y:'ばしゃく', desc:'馬を使って荷物を運んだ、室町時代の運送業者', note:'' },
+  { unit:'chusei', group:'m_bunka', term:'金閣', y:'きんかく', desc:'足利義満が京都の北山に建てた、金ぱくをはった建物', note:'公家と武家の文化が混じった<b>北山文化</b>を代表します。' },
+  { unit:'chusei', group:'m_bunka', term:'銀閣', y:'ぎんかく', desc:'足利義政が京都の東山に建てた、簡素で落ち着いた建物', note:'禅の影響を受けた<b>東山文化</b>を代表します。' },
+  { unit:'chusei', group:'m_bunka', term:'書院造', y:'しょいんづくり', desc:'たたみ・障子・床の間を取り入れた、今の和室のもとになった建築様式', note:'銀閣と同じ敷地にある東求堂同仁斎が代表です。' },
+  { unit:'chusei', group:'m_bunka', term:'能', y:'のう', desc:'観阿弥・世阿弥の父子が、足利義満の保護を受けて大成した歌と舞の演劇', note:'合間に演じられたこっけいな劇が<b>狂言</b>です。' },
+  { unit:'chusei', group:'m_bunka', term:'水墨画', y:'すいぼくが', desc:'墨の濃淡だけでえがく絵で、雪舟が大成したもの', note:'' }
+];
+
+/* ---- 分類のデータ ----
+   { unit, ask, rule（とき方で見せるきまり）, cats: { なかまの名前: [例, …] } } */
+const SORTS = [
+  { unit:'sekai', ask:'次の国は、どの州にありますか。',
+    rule:'世界は、<b>アジア州・ヨーロッパ州・アフリカ州・北アメリカ州・南アメリカ州・オセアニア州</b>の6つの州に分けられます。<b>北アメリカ州と南アメリカ州の境はパナマ地峡</b>で、メキシコは北アメリカ州です。',
+    cats:{ 'アジア州':['中国','インド','タイ','サウジアラビア','インドネシア','韓国'],
+           'ヨーロッパ州':['フランス','ドイツ','イタリア','イギリス','スペイン'],
+           'アフリカ州':['エジプト','ケニア','ナイジェリア','南アフリカ共和国'],
+           '北アメリカ州':['アメリカ合衆国','カナダ','メキシコ','キューバ'],
+           '南アメリカ州':['ブラジル','アルゼンチン','ペルー','チリ'],
+           'オセアニア州':['オーストラリア','ニュージーランド','フィジー','パプアニューギニア'] } },
+  { unit:'sekai', ask:'次の名前は、大陸と海洋のどちらですか。',
+    rule:'<b>六大陸</b>：ユーラシア大陸・アフリカ大陸・北アメリカ大陸・南アメリカ大陸・オーストラリア大陸・南極大陸。<b>三大洋</b>：太平洋・大西洋・インド洋。',
+    cats:{ '大陸':['ユーラシア大陸','アフリカ大陸','北アメリカ大陸','南アメリカ大陸','オーストラリア大陸','南極大陸'],
+           '海洋':['太平洋','大西洋','インド洋'] } },
+  { unit:'sekai', ask:'次の県は、どの地方にありますか。',
+    rule:'日本は、<b>北海道・東北・関東・中部・近畿・中国四国・九州</b>の7つの地方に分けられます。',
+    cats:{ '東北地方':['青森県','岩手県','宮城県','秋田県','山形県','福島県'],
+           '関東地方':['茨城県','栃木県','群馬県','埼玉県','千葉県','神奈川県'],
+           '中部地方':['新潟県','富山県','石川県','長野県','岐阜県','静岡県','愛知県'],
+           '近畿地方':['三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県'],
+           '中国四国地方':['鳥取県','島根県','岡山県','広島県','山口県','香川県','愛媛県','高知県'],
+           '九州地方':['福岡県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'] } },
+  { unit:'kurashi', ask:'次の特徴は、どの気候帯のものですか。',
+    rule:'<b>気温で見分ける</b>。最も寒い月が18℃以上 → 熱帯、最も暖かい月が10℃未満 → 寒帯、その間で冬が−3℃より低く夏は暖かい → 亜寒帯（冷帯）、四季がはっきり → 温帯。<b>降水量がとても少なければ乾燥帯</b>です。',
+    cats:{ '熱帯':['一年中気温が高く、気温の変化が小さい','スコールがふり、熱帯林が広がる','雨季と乾季があり、丈の高い草原が広がる'],
+           '乾燥帯':['降水量が少なく、樹木が育たない','オアシスのまわりで農業が行われる','日干しれんがの家が多い'],
+           '温帯':['四季の変化がはっきりしている','夏は乾燥し、冬に雨がふる地域がある','季節風の影響で、夏に雨が多い'],
+           '亜寒帯（冷帯）':['冬の寒さがきびしく、夏と冬の気温の差が大きい','タイガとよばれる針葉樹林が広がる'],
+           '寒帯':['一年中気温が低く、樹木が育たない','夏だけこけ類が育つ','一年中、雪と氷におおわれている'] } },
+  { unit:'kurashi', ask:'次の説明は、どの宗教のものですか。',
+    rule:'<b>キリスト教</b>：聖書・日曜日の礼拝。<b>イスラム教</b>：コーラン・1日5回の礼拝・豚肉を食べない。<b>仏教</b>：シャカの教え・東アジアや東南アジア。<b>ヒンドゥー教</b>：インド・牛を神聖な動物とする。',
+    cats:{ 'キリスト教':['教典は聖書で、日曜日に教会で礼拝する','ヨーロッパや南北アメリカで広く信仰されている','クリスマスは、この宗教の行事がもとになっている'],
+           'イスラム教':['1日5回、聖地メッカの方角に祈る','豚肉を食べず、酒を飲まない','教典はコーラン','西アジアや北アフリカで広く信仰されている'],
+           '仏教':['シャカ（釈迦）が開いた','東アジアや東南アジアに広がっている'],
+           'ヒンドゥー教':['インドで最も多くの人が信仰している','牛を神聖な動物とし、牛肉を食べない'] } },
+  { unit:'kurashi', ask:'次の説明は、どの州のものですか。',
+    rule:'州ごとの特色を、<b>キーワード</b>で覚えよう。アジア＝経済特区・ASEAN、ヨーロッパ＝EU・ユーロ、アフリカ＝モノカルチャー経済・レアメタル、北アメリカ＝適地適作・シリコンバレー、南アメリカ＝アマゾン川・バイオエタノール、オセアニア＝先住民・露天掘り。',
+    cats:{ 'アジア州':['中国が経済特区をつくり、「世界の工場」とよばれるようになった','ASEANをつくって協力している','季節風の影響で稲作がさかんな地域が多い'],
+           'ヨーロッパ州':['EUをつくり、多くの国が共通通貨ユーロを使う','偏西風と暖流の影響で、高緯度のわりに温暖','混合農業や地中海式農業が行われている'],
+           'アフリカ州':['特定の作物や鉱産資源の輸出にたよるモノカルチャー経済の国が多い','サハラ砂漠の南のふちで砂漠化が進んでいる','レアメタルが多く産出する'],
+           '北アメリカ州':['適地適作で、大型機械を使った企業的な農業が行われる','シリコンバレーにICT関連の企業が集まる','ヒスパニックとよばれる人々が増えている'],
+           '南アメリカ州':['流域面積が世界最大のアマゾン川が流れる','さとうきびを原料にしたバイオエタノールがつくられる','日系人が多く住む国がある'],
+           'オセアニア州':['先住民のアボリジニやマオリがくらす','露天掘りで鉄鉱石や石炭をほり出している','かつて白豪主義がとられていた'] } },
+  { unit:'kodai', ask:'次のできごとや品物は、どの時代のものですか。',
+    rule:'<b>縄文</b>＝狩り・採集、縄文土器、貝塚。<b>弥生</b>＝稲作、弥生土器、高床倉庫、邪馬台国。<b>古墳</b>＝大和政権、前方後円墳、埴輪、渡来人。<b>飛鳥</b>＝聖徳太子、大化の改新、大宝律令。<b>奈良</b>＝平城京、班田収授法、天平文化。<b>平安</b>＝平安京、摂関政治、国風文化。',
+    cats:{ '縄文時代':['縄文土器','貝塚','土偶','狩りや採集を中心としたくらし'],
+           '弥生時代':['弥生土器','高床倉庫','稲作が広まった','邪馬台国の卑弥呼'],
+           '古墳時代':['前方後円墳','埴輪','大和政権（ヤマト王権）','渡来人が漢字や仏教を伝えた'],
+           '飛鳥時代':['十七条の憲法','冠位十二階','大化の改新','大宝律令','法隆寺'],
+           '奈良時代':['平城京','班田収授法','墾田永年私財法','東大寺の大仏','「万葉集」'],
+           '平安時代':['平安京','摂関政治','かな文字','「源氏物語」','平等院鳳凰堂'] } },
+  { unit:'kodai', ask:'次の説明に当てはまる、律令にもとづく税や役はどれですか。',
+    rule:'<b>租</b>＝収穫した稲の約3%を国に納める。<b>調</b>＝布や地方の特産物を都に納める。<b>庸</b>＝都で10日間働くかわりに布を納める。ほかに<b>防人</b>（九州北部の守り）などの兵役もありました。',
+    cats:{ '租':['収穫した稲の約3%を納める'], '調':['布や地方の特産物を納める'], '庸':['都で10日間働くかわりに布を納める'], '防人':['九州北部を守る兵士の役'] } },
+  { unit:'chusei', ask:'次のできごとは、どの時代のものですか。',
+    rule:'<b>鎌倉時代</b>（1185ごろ〜1333年）＝源頼朝・北条氏の執権政治・承久の乱・御成敗式目・元寇。<b>室町時代</b>（1338〜1573年）＝足利氏・勘合貿易・応仁の乱・戦国大名。',
+    cats:{ '鎌倉時代':['源頼朝が守護と地頭を置いた','北条氏が執権として政治を行った','承久の乱が起こった','御成敗式目が定められた','元の大軍が2度せめてきた'],
+           '室町時代':['足利尊氏が征夷大将軍になった','足利義満が勘合貿易を始めた','応仁の乱が起こった','農民が惣をつくって村を運営した','下剋上の風潮が広がった'] } },
+  { unit:'chusei', ask:'次の文化は、どちらのものですか。',
+    rule:'<b>鎌倉文化</b>＝武士の気風に合った力強い文化（金剛力士像・「平家物語」・新しい仏教）。<b>室町文化</b>＝禅の影響を受けた、簡素で気品のある文化（金閣・銀閣・書院造・能・水墨画）。',
+    cats:{ '鎌倉文化':['金剛力士像','「平家物語」','「新古今和歌集」','法然や親鸞が開いた新しい仏教'],
+           '室町文化':['金閣と銀閣','書院造','能と狂言','雪舟の水墨画','御伽草子'] } }
+];
+
+/* ---- 県庁所在地（県名とちがうもの）---- */
+const KENCHO = [
+  { k:'北海道',   s:'札幌市' },
+  { k:'岩手県',   s:'盛岡市' },
+  { k:'宮城県',   s:'仙台市' },
+  { k:'茨城県',   s:'水戸市' },
+  { k:'栃木県',   s:'宇都宮市' },
+  { k:'群馬県',   s:'前橋市' },
+  { k:'神奈川県', s:'横浜市' },
+  { k:'石川県',   s:'金沢市' },
+  { k:'山梨県',   s:'甲府市' },
+  { k:'愛知県',   s:'名古屋市' },
+  { k:'三重県',   s:'津市' },
+  { k:'滋賀県',   s:'大津市' },
+  { k:'兵庫県',   s:'神戸市' },
+  { k:'島根県',   s:'松江市' },
+  { k:'香川県',   s:'高松市' },
+  { k:'愛媛県',   s:'松山市' },
+  { k:'沖縄県',   s:'那覇市' }
+];
+
+/* ---- 雨温図の資料 ----
+   t: 1〜12月の平均気温（℃）、p: 1〜12月の降水量（mm）、zone: 気候帯、south: 南半球かどうか
+   出すたびに少しだけ数をゆらすので、同じ都市でもまったく同じグラフにはならない */
+const CLIMATE = [
+  { city:'シンガポール', zone:'熱帯', sub:'熱帯雨林気候', south:false,
+    t:[27,28,28,28,28,28,28,28,28,28,27,27], p:[240,160,170,150,170,130,150,170,170,190,250,290],
+    why:'最も寒い月でも18℃より高く、一年中気温がほとんど変わりません。雨も一年中多いので<b>熱帯</b>（熱帯雨林気候）です。' },
+  { city:'バンコク', zone:'熱帯', sub:'サバナ気候', south:false,
+    t:[27,28,29,30,29,29,28,28,28,28,27,26], p:[10,20,30,70,190,150,150,190,320,230,50,10],
+    why:'一年中気温が高く（最も寒い月でも18℃以上）、雨の多い<b>雨季</b>と雨の少ない<b>乾季</b>がはっきり分かれているので<b>熱帯</b>（サバナ気候）です。' },
+  { city:'カイロ', zone:'乾燥帯', sub:'砂漠気候', south:false,
+    t:[14,15,18,22,26,28,29,29,27,24,19,15], p:[5,4,4,1,0,0,0,0,0,1,3,6],
+    why:'一年を通して降水量がほとんどありません。<b>降水量がとても少なければ乾燥帯</b>（砂漠気候）です。' },
+  { city:'東京', zone:'温帯', sub:'温暖湿潤気候', south:false,
+    t:[5,6,9,14,19,22,26,28,24,18,13,8], p:[55,55,115,130,140,170,155,170,225,235,95,50],
+    why:'夏は暑く冬は寒い、四季のはっきりした気候です。最も寒い月が0℃前後で、夏に雨が多いので<b>温帯</b>（温暖湿潤気候）です。' },
+  { city:'ローマ', zone:'温帯', sub:'地中海性気候', south:false,
+    t:[8,9,11,14,18,22,25,25,22,18,13,9], p:[70,70,60,70,45,30,15,30,70,110,110,90],
+    why:'冬でも0℃より高く、<b>夏に雨が少なく、冬に雨が多い</b>のが特徴です。<b>温帯</b>（地中海性気候）です。' },
+  { city:'ロンドン', zone:'温帯', sub:'西岸海洋性気候', south:false,
+    t:[5,5,7,9,13,16,18,18,15,12,8,6], p:[55,40,40,45,45,45,45,50,50,70,60,55],
+    why:'高緯度のわりに冬が寒くなく、一年を通して雨が平均してふります。<b>偏西風と暖流</b>の影響を受ける<b>温帯</b>（西岸海洋性気候）です。' },
+  { city:'モスクワ', zone:'亜寒帯', sub:'亜寒帯（冷帯）', south:false,
+    t:[-9,-8,-2,6,13,17,19,17,11,5,-2,-7], p:[40,35,35,40,50,75,85,75,65,60,55,50],
+    why:'冬は−3℃よりずっと低く、夏は20℃近くまで上がります。<b>夏と冬の気温の差が大きい</b>ので<b>亜寒帯（冷帯）</b>です。' },
+  { city:'イルクーツク', zone:'亜寒帯', sub:'亜寒帯（冷帯）', south:false,
+    t:[-18,-15,-6,3,10,16,18,16,9,1,-8,-16], p:[12,8,10,15,30,75,110,95,50,20,20,18],
+    why:'冬は−15℃以下ときびしく寒いのに、夏は15℃をこえます。<b>気温の年較差がとても大きい</b>ので<b>亜寒帯（冷帯）</b>です。' },
+  { city:'バロー（アラスカ）', zone:'寒帯', sub:'ツンドラ気候', south:false,
+    t:[-25,-26,-25,-17,-7,2,5,4,-1,-9,-18,-23], p:[5,5,5,5,5,10,25,25,15,10,5,5],
+    why:'いちばん暖かい月でも10℃より低く、樹木が育ちません。<b>寒帯</b>（ツンドラ気候）です。' },
+  { city:'シドニー', zone:'温帯', sub:'温暖湿潤気候', south:true,
+    t:[23,23,22,19,16,13,12,14,17,19,21,22], p:[100,110,130,125,120,130,95,80,70,75,85,80],
+    why:'1月ごろが暖かく、7月ごろが寒いので<b>南半球</b>です。冬でも0℃より高く四季があるので<b>温帯</b>です。' },
+  { city:'ブエノスアイレス', zone:'温帯', sub:'温暖湿潤気候', south:true,
+    t:[24,23,21,17,14,11,11,12,15,18,21,23], p:[120,110,120,90,80,60,60,65,80,125,110,105],
+    why:'1月ごろが暖かく、7月ごろが寒いので<b>南半球</b>です。気温も降水量も適度なので<b>温帯</b>です。' }
+];
+
+// 雨温図を SVG でかく（棒＝降水量、折れ線＝気温）
+function climateChart(c){
+  const W = 330, H = 200, L = 34, R = 36, T = 14, B = 24, iw = W - L - R, ih = H - T - B;
+  const pmax = Math.max(300, Math.ceil(Math.max(...c.p) / 100) * 100), bw = iw / 12;
+  const ty = v => (T + ih * (30 - v) / 60).toFixed(1);
+  const py = v => (T + ih * (1 - v / pmax)).toFixed(1);
+  const g = [];
+  [20, 0, -20].forEach(v => {
+    g.push(`<line class="gl" x1="${L}" y1="${ty(v)}" x2="${L + iw}" y2="${ty(v)}"/>`);
+    g.push(`<text class="ax" x="${L - 5}" y="${+ty(v) + 4}" text-anchor="end">${numText(v)}</text>`);
+  });
+  [0, pmax / 2, pmax].forEach(v => g.push(`<text class="ax" x="${L + iw + 5}" y="${+py(v) + 4}" text-anchor="start">${v}</text>`));
+  c.p.forEach((v, i) => {
+    const h = ih * v / pmax;
+    g.push(`<rect class="bar" x="${(L + bw * i + bw * 0.15).toFixed(1)}" y="${(T + ih - h).toFixed(1)}" width="${(bw * 0.7).toFixed(1)}" height="${h.toFixed(1)}"/>`);
+  });
+  g.push(`<line class="axis" x1="${L}" y1="${T + ih}" x2="${L + iw}" y2="${T + ih}"/>`);
+  g.push(`<polyline class="tl" points="${c.t.map((v, i) => `${(L + bw * i + bw / 2).toFixed(1)},${ty(v)}`).join(' ')}"/>`);
+  c.t.forEach((v, i) => g.push(`<circle class="td" cx="${(L + bw * i + bw / 2).toFixed(1)}" cy="${ty(v)}" r="2.4"/>`));
+  [0, 3, 6, 9, 11].forEach(i => g.push(`<text class="ax" x="${(L + bw * i + bw / 2).toFixed(1)}" y="${H - 7}" text-anchor="middle">${i + 1}</text>`));
+  return `<svg class="ondan" viewBox="0 0 ${W} ${H}" role="img" aria-label="${c.city}の雨温図">${g.join('')}</svg>`;
+}
+
+/* ---- データから問題を作る ---- */
+
+function termSteps(t){
+  return [
+    { say: `<b>${t.term}</b>：${t.desc}。` },
+    ...(t.note ? [{ say: t.note }] : []),
+    answerStep(t.term)
+  ];
+}
+// 用語 → えらぶ
+function termChoice(t){
+  const pool = TERMS.filter(x => x.unit === t.unit && x.group === t.group).map(x => x.term);
+  return { unit:t.unit, type:'choice', answer:t.term, choices:makeChoices(t.term, pool),
+    text: `${t.desc}を何といいますか。`, steps: termSteps(t) };
+}
+// 用語 → 思い出す
+function termRecall(t){
+  return { unit:t.unit, type:'recall', answer:t.term,
+    text: `${t.desc}を何といいますか。`, steps: termSteps(t) };
+}
+// 用語 → 漢字で書く（お手本とくらべて自分で ○×）
+function termWrite(t){
+  return { unit:t.unit, type:'write', answer:t.term, sub:`読み：${t.y}`,
+    text: `${t.desc}を何といいますか。<b>漢字</b>で右のマスに書きましょう。`,
+    steps: [
+      { say: 'お手本と、自分の書いた字を1字ずつくらべよう。<b>社会の用語は、漢字で正しく書けてこそ使える</b>ようになります。' },
+      ...termSteps(t)
+    ] };
+}
+// 分類 → えらぶ
+function sortChoice(s){
+  const names = Object.keys(s.cats), cat = pick(names), item = pick(s.cats[cat]);
+  return { unit:s.unit, type:'choice', answer:cat, choices:makeChoices(cat, names),
+    text: `${s.ask}<span class="item">${item}</span>`,
+    steps: [
+      { say: s.rule },
+      { say: `「${item}」は <b>${cat}</b> に当てはまります。` },
+      answerStep(cat)
+    ] };
+}
+// 県庁所在地
+function kenchoQuestion(){
+  const k = pick(KENCHO);
+  const pool = KENCHO.filter(x => x.k !== k.k).map(x => x.s);
+  const steps = [
+    { say: '<b>県名と県庁所在地の名前がちがう県</b>は、セットで覚えよう。' },
+    { say: `<b>${k.k}</b> の県庁所在地は <b>${k.s}</b>。` },
+    answerStep(k.s)
+  ];
+  if (Math.random() < 0.6){
+    return { unit:'sekai', type:'choice', answer:k.s, choices:makeChoices(k.s, pool),
+      text: `${k.k}の県庁所在地はどこですか。`, steps };
+  }
+  return { unit:'sekai', type:'recall', answer:k.s, text: `${k.k}の県庁所在地を思い出しましょう。`, steps };
+}
+// できごとの順番
+function eventOrder(unit){
+  const two = shuffle(EVENTS.filter(e => e.unit === unit)).slice(0, 2).sort((a, b) => a.y - b.y);
+  const [a, b] = two;
+  return { unit, type:'choice', answer:a.name, choices:shuffle([a.name, b.name]),
+    text: '次の2つのできごとのうち、<b>先に</b>起こったのはどちらですか。',
+    steps: [
+      { say: `<b>${a.name}</b>のは <b>${a.y}年</b>（${a.era}）。` },
+      { say: `<b>${b.name}</b>のは <b>${b.y}年</b>（${b.era}）。` },
+      { say: `${b.y} 年より ${a.y} 年のほうが前なので、先に起こったのは「${a.name}」です。` },
+      answerStep(a.name)
+    ] };
+}
+// 雨温図の資料から読みとる
+function climateQuestion(){
+  const src = pick(CLIMATE);
+  // 数を少しだけゆらして、同じ都市でも毎回ちがうグラフにする
+  const c = { ...src,
+    t: src.t.map(v => v + rnd(-1, 1)),
+    p: src.p.map(v => Math.round(v * (85 + rnd(0, 30)) / 100)) };
+  const hot = Math.max(...c.t), cold = Math.min(...c.t), sum = c.p.reduce((s, v) => s + v, 0);
+  const shiryo = { title: 'ある都市の雨温図', body: climateChart(c) };
+  const read = { say: `グラフを読みとると、最も暖かい月は約 ${hot}℃、最も寒い月は約 ${numText(cold)}℃（差は ${hot - cold}℃）、年間の降水量は約 ${sum} mm です。` };
+  const r = Math.random();
+  if (r < 0.25){
+    const ans = c.south ? '南半球' : '北半球';
+    return { unit:'kurashi', type:'choice', answer:ans, choices:['北半球', '南半球'], shiryo,
+      text: 'この雨温図の都市は、北半球と南半球のどちらにありますか。',
+      steps: [
+        { say: '<b>北半球と南半球では季節が逆</b>になります。気温のグラフの山が、いつできているかを見ます。' },
+        { say: `このグラフで気温が高いのは ${c.south ? '12〜2月ごろで、7〜8月ごろが最も低くなっています' : '7〜8月ごろで、12〜2月ごろが最も低くなっています'}。` },
+        { say: `${c.south ? '日本と反対の季節なので' : '日本と同じ季節なので'} <b>${ans}</b> です。` },
+        answerStep(ans)
+      ] };
+  }
+  if (r < 0.45){
+    const pool = CLIMATE.filter(x => x.zone !== c.zone).map(x => x.city);
+    return { unit:'kurashi', type:'choice', answer:c.city, choices:makeChoices(c.city, pool), shiryo,
+      text: 'この雨温図に当てはまる都市はどれですか。',
+      steps: [
+        { say: '<b>まず気温</b>（最も暖かい月・最も寒い月・その差）、<b>つぎに降水量</b>の多い時期を読みとって、気候帯を決めます。' },
+        read,
+        { say: c.why },
+        { say: `選択肢の中で ${c.zone}（${c.sub}）に当てはまるのは <b>${c.city}</b> です。` },
+        answerStep(c.city)
+      ] };
+  }
+  return { unit:'kurashi', type:'choice', answer:c.zone, choices:makeChoices(c.zone, ['熱帯', '乾燥帯', '温帯', '亜寒帯', '寒帯']), shiryo,
+    text: 'この雨温図に当てはまる気候帯はどれですか。',
+    steps: [
+      { say: '<b>まず気温</b>を見ます。最も寒い月が18℃以上 → 熱帯、最も暖かい月が10℃未満 → 寒帯、冬が−3℃より低く夏が暖かい → 亜寒帯、四季がはっきり → 温帯。<b>降水量がとても少なければ乾燥帯</b>です。' },
+      read,
+      { say: c.why },
+      answerStep(`${c.zone}（${c.sub}）`)
+    ] };
+}
+
+const TYPE_RATE = { num: 0.25, choice: 0.45, write: 0.12 };   // のこりは「思い出す」問題
+
+// えらぶ問題は、用語・分類・その分野だけの問題（県庁所在地／雨温図／できごとの順番）をまぜて出す
+function choiceQuestion(unit){
+  const sorts = SORTS.filter(s => s.unit === unit);
+  const r = Math.random();
+  if (r < 0.28){
+    if (unit === 'sekai') return kenchoQuestion();
+    if (unit === 'kurashi') return climateQuestion();
+    return eventOrder(unit);
+  }
+  if (r < 0.58 && sorts.length) return sortChoice(pick(sorts));
+  return termChoice(pick(TERMS.filter(t => t.unit === unit)));
+}
+
+function genShakai(unit){
+  const calcs = CALC[unit] || [];
+  const terms = TERMS.filter(t => t.unit === unit);
+  const writables = terms.filter(t => t.y);   // 読みをつけた用語だけ「漢字で書く」問題にする
+  const r = Math.random();
+  if (r < TYPE_RATE.num && calcs.length) return pick(calcs)(unit);
+  if (r < TYPE_RATE.num + TYPE_RATE.choice) return choiceQuestion(unit);
+  if (r < TYPE_RATE.num + TYPE_RATE.choice + TYPE_RATE.write && writables.length) return termWrite(pick(writables));
+  return termRecall(pick(terms));
+}
+
+const UNITS = [
+  { id:'sekai',   mark:'🗺', name:'世界と日本のすがた',       hint:'緯度・経度と時差の計算、日本の領域、地形図、都道府県' },
+  { id:'kurashi', mark:'🌏', name:'世界の人々のくらし',       hint:'気候帯と雨温図、宗教、世界の諸地域、人口密度の計算' },
+  { id:'kodai',   mark:'⛩', name:'古代までの日本',           hint:'文明のおこり、縄文・弥生・古墳、飛鳥・奈良・平安' },
+  { id:'chusei',  mark:'⚔', name:'武士の世の中',             hint:'鎌倉幕府と元寇、室町幕府と応仁の乱、鎌倉・室町の文化' },
+  { id:'mix',     mark:'∞', name:'まぜこぜ',                 hint:'4つの分野がまざって出る（まぜると、どの考え方を使うか考える力がつく）', badge:'ふく習におすすめ' }
+];
+
+function makeQuestions(unitId, n){
+  const list = [];
+  const units = unitId === 'mix' ? UNITS.filter(u => u.id !== 'mix').map(u => u.id) : [unitId];
+  const seen = new Set();
+  let guard = 0;
+  while (list.length < n && guard < n * 80){
+    guard++;
+    const q = genShakai(pick(units));
+    const key = q.type + q.text.replace(/<[^>]*>/g, '');
+    if (seen.has(key)) continue;   // 同じ問題が重ならないように
+    seen.add(key);
+    list.push(q);
+  }
+  return list;
+}
+
+/* ============================================================
+   2. 手書き数字の読みとり（数学ドリルと同じしくみ。時差や人口密度などの計算で使う）
+      数字の見本の形と、書いた線を「点の集まり」にしてくらべ、
+      いちばん近い数字を選ぶ（$P Point-Cloud Recognizer という方法）。
+      読みまちがえた字をキーで直すと、その形を見本に追加して覚える。
+   ============================================================ */
+const INK_N = 32;             // 1文字を何個の点でくらべるか
+const INK_LIMIT = 9;          // これより遠い形は「読みとれない」にする
+const INK_KEY = 'math-drill-ink';
+
+// 見本の形を作る部品（横0〜0.7、たて0〜1の枠で考える。角度は右が0°、下が90°）
+function arc(cx, cy, rx, ry, t0, t1){
+  const pts = [];
+  for (let k = 0; k <= 24; k++){
+    const t = (t0 + (t1 - t0) * k / 24) * Math.PI / 180;
+    pts.push({ x: cx + rx * Math.cos(t), y: cy + ry * Math.sin(t) });
+  }
+  return pts;
+}
+function line(...xy){
+  const pts = [];
+  for (let k = 0; k < xy.length; k += 2) pts.push({ x: xy[k], y: xy[k + 1] });
+  return pts;
+}
+// 数字ごとの書き方のパターン。[ 1画目, 2画目, … ]、1画は部品をつなげたもの
+const SHAPES = {
+  '0': [ [[arc(.35, .5, .33, .5, 270, 630)]], [[arc(.35, .5, .22, .5, 250, 610)]] ],
+  '1': [ [[line(.35, 0, .35, 1)]], [[line(.22, .14, .4, 0, .4, 1)]], [[line(.22, .14, .4, 0, .4, 1)], [line(.12, 1, .68, 1)]] ],
+  '2': [ [[arc(.35, .3, .32, .3, 190, 360), line(.67, .3, .02, 1, .7, 1)]], [[arc(.35, .3, .32, .3, 200, 400), line(.02, 1, .7, 1)]] ],
+  '3': [ [[arc(.33, .26, .3, .26, 200, 450), arc(.33, .74, .34, .26, 270, 520)]], [[line(.05, 0, .65, 0, .3, .42), arc(.33, .71, .34, .29, 280, 520)]] ],
+  '4': [ [[line(.5, 0, 0, .68, .72, .68)], [line(.52, .28, .52, 1)]], [[line(.12, 0, .05, .62, .72, .62)], [line(.55, 0, .55, 1)]], [[line(.55, 1, .55, 0, 0, .68, .72, .68)]] ],
+  '5': [ [[line(.15, 0, .1, .44), arc(.36, .7, .32, .29, 235, 500)], [line(.15, 0, .65, 0)]], [[line(.65, 0, .15, 0, .1, .44), arc(.36, .7, .32, .29, 235, 500)]] ],
+  '6': [ [[arc(.62, .72, .57, .72, 265, 180), arc(.35, .72, .3, .28, 180, -180)]] ],
+  '7': [
+    [[line(.02, 0, .68, 0, .25, 1)]], [[line(.02, .22, .02, 0, .68, 0, .3, 1)]], [[line(.02, .25, .02, 0)], [line(.08, 0, .68, 0, .3, 1)]],
+    // 1画目に長いたて棒、右がほぼまっすぐ下におりる「7」
+    [[line(.02, .5, .02, 0)], [line(.06, .06, .68, .04, .55, 1)]], [[line(.02, .5, .02, 0)], [line(.06, .06, .68, .04, .64, 1)]],
+    [[line(.04, .45, .04, 0, .68, 0, .56, 1)]]
+  ],
+  '8': [ [[arc(.35, .25, .26, .25, 90, 450), arc(.35, .74, .33, .26, 270, 630)]] ],
+  '9': [ [[arc(.35, .28, .3, .28, 0, -360), line(.65, .28, .62, 1)]], [[arc(.35, .28, .3, .28, 0, -360), arc(.2, .28, .45, .72, 0, 90)]] ]
+};
+
+function dist(p, q){ return Math.hypot(p.x - q.x, p.y - q.y); }
+
+// 何画かの線を、INK_N 個の点に並べなおして、大きさと位置をそろえる
+function cloud(strokes){
+  const pts = [];
+  strokes.forEach((s, id) => s.forEach(p => pts.push({ x: p.x, y: p.y, id })));
+  let L = 0;
+  for (let i = 1; i < pts.length; i++) if (pts[i].id === pts[i - 1].id) L += dist(pts[i - 1], pts[i]);
+  const I = L / (INK_N - 1), out = [{ x: pts[0].x, y: pts[0].y }];
+  let D = 0;
+  for (let i = 1; I > 0 && i < pts.length; i++){
+    if (pts[i].id !== pts[i - 1].id) continue;
+    const d = dist(pts[i - 1], pts[i]);
+    if (D + d >= I && d > 0){
+      const t = (I - D) / d;
+      const q = { x: pts[i - 1].x + t * (pts[i].x - pts[i - 1].x), y: pts[i - 1].y + t * (pts[i].y - pts[i - 1].y), id: pts[i].id };
+      out.push(q);
+      pts.splice(i, 0, q);
+      D = 0;
+    } else D += d;
+  }
+  const last = pts[pts.length - 1];
+  while (out.length < INK_N) out.push({ x: last.x, y: last.y });
+  out.length = INK_N;
+
+  const xs = out.map(p => p.x), ys = out.map(p => p.y);
+  const minX = Math.min(...xs), minY = Math.min(...ys);
+  const size = Math.max(Math.max(...xs) - minX, Math.max(...ys) - minY) || 1;
+  out.forEach(p => { p.x = (p.x - minX) / size; p.y = (p.y - minY) / size; });
+  const cx = out.reduce((s, p) => s + p.x, 0) / INK_N, cy = out.reduce((s, p) => s + p.y, 0) / INK_N;
+  return out.map(p => ({ x: p.x - cx, y: p.y - cy }));
+}
+
+function cloudDist(a, b, start, stop){
+  const used = new Array(INK_N).fill(false);
+  let sum = 0, i = start;
+  do {
+    let min = Infinity, idx = 0;
+    for (let j = 0; j < INK_N; j++){
+      if (used[j]) continue;
+      const d = dist(a[i], b[j]);
+      if (d < min){ min = d; idx = j; }
+    }
+    used[idx] = true;
+    sum += (1 - ((i - start + INK_N) % INK_N) / INK_N) * min;
+    if (sum >= stop) return sum;
+    i = (i + 1) % INK_N;
+  } while (i !== start);
+  return sum;
+}
+function cloudDistance(a, b, stop){
+  let best = stop;
+  for (let i = 0; i < INK_N; i += Math.floor(Math.sqrt(INK_N))){
+    best = Math.min(best, cloudDist(a, b, i, best), cloudDist(b, a, i, best));
+  }
+  return best;
+}
+
+// 覚えた形（localStorage が使えないときも、開いている間は覚えておく）
+let learned = null;
+function getLearned(){
+  if (!learned){
+    try { learned = JSON.parse(localStorage.getItem(INK_KEY)) || {}; } catch (e) { learned = {}; }
+  }
+  return learned;
+}
+let templates = null;
+function getTemplates(){
+  if (templates) return templates;
+  templates = [];
+  for (const label in SHAPES){
+    SHAPES[label].forEach(v => templates.push({ label, pts: cloud(v.map(pieces => [].concat(...pieces))) }));
+  }
+  const l = getLearned();
+  for (const label in l){
+    l[label].forEach(pts => templates.push({ label, pts: pts.map(([x, y]) => ({ x, y })) }));
+  }
+  return templates;
+}
+// 読みまちがえた字の形を覚える（数字ごとに新しい5個まで）
+function learn(label, pts){
+  const l = getLearned();
+  l[label] = (l[label] || []).concat([pts.map(p => [+p.x.toFixed(3), +p.y.toFixed(3)])]).slice(-5);
+  try { localStorage.setItem(INK_KEY, JSON.stringify(l)); } catch (e) {}
+  templates = null;
+}
+
+function classify(strokes){
+  const pts = cloud(strokes);
+  let best = '?', bestD = INK_LIMIT * 2;
+  for (const t of getTemplates()){
+    const d = cloudDistance(pts, t.pts, bestD);
+    if (d < bestD){ bestD = d; best = t.label; }
+  }
+  return { label: bestD < INK_LIMIT ? best : '?', d: bestD, pts };
+}
+
+// となりあう線のまとまり（run）を1文字として読み、読みにくさ（cost）をつける
+function readChar(run, ref, first){
+  const flat = g => g.maxX - g.minX > (g.maxY - g.minY) * 2 && g.maxY - g.minY < ref * 0.3;
+  const minX = Math.min(...run.map(g => g.minX)), maxX = Math.max(...run.map(g => g.maxX));
+  const minY = Math.min(...run.map(g => g.minY)), maxY = Math.max(...run.map(g => g.maxY));
+  const w = maxX - minX, h = maxY - minY;
+  const strokes = [].concat(...run.map(g => g.strokes));
+  let merge = 0;
+  if (run.length === 1){
+    if (Math.max(w, h) < ref * 0.12) return { label: '', cost: 0 };                  // ペン先がふれただけの点
+    if (flat(run[0])) return first ? { label: '-', cost: 1, pts: null } : { label: '?', cost: INK_LIMIT, pts: null };  // 横線は「−」
+  } else {
+    if (run.some(flat)) return null;
+    let right = run[0].maxX;
+    for (const g of run.slice(1)){
+      if (g.minX - right > ref * 0.2) return null;                                  // はなれすぎた線は、同じ字にしない
+      right = Math.max(right, g.maxX);
+    }
+    if (w > ref * 1.2) return null;
+    // いちばん高いまとまり以外も背が高いときは、別々の字の可能性が高い（「10」の 1 と 0 など）
+    const tall = run.map(g => Math.max(0, (g.maxY - g.minY) / ref - 0.6) * 25);
+    merge = tall.reduce((s, t) => s + t, 0) - Math.max(...tall);
+  }
+  // 字の高さにくらべて低いもの（「7」の1画目のたて棒だけ、など）は、1文字としては読みにくい
+  const small = Math.max(0, 0.75 - h / ref) * 30;
+  if (strokes.length === 1 && w < h * 0.25 && h > ref * 0.4) return { label: '1', cost: 1 + small, pts: cloud(strokes) };  // たての細い線は「1」
+  const c = classify(strokes);
+  return { label: c.label, cost: 1 + c.d + small + merge, pts: c.pts };
+}
+
+// 答えの欄の線を、左から1文字ずつに分けて読む
+function readInk(strokes, boxH){
+  const items = strokes.map(pts => {
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+    return { pts, minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
+  }).sort((p, q) => p.minX - q.minX);
+
+  // たての位置が重なる線は、同じ字（「4」「5」の2画目など）
+  const groups = [];
+  for (const it of items){
+    const cx = (it.minX + it.maxX) / 2;
+    const g = groups.find(g => {
+      const gx = (g.minX + g.maxX) / 2;
+      return (cx >= g.minX - 3 && cx <= g.maxX + 3) || (gx >= it.minX - 3 && gx <= it.maxX + 3);
+    });
+    if (g){
+      g.strokes.push(it.pts);
+      g.minX = Math.min(g.minX, it.minX); g.maxX = Math.max(g.maxX, it.maxX);
+      g.minY = Math.min(g.minY, it.minY); g.maxY = Math.max(g.maxY, it.maxY);
+    } else {
+      groups.push({ strokes: [it.pts], minX: it.minX, maxX: it.maxX, minY: it.minY, maxY: it.maxY });
+    }
+  }
+
+  // 1文字の区切り方をいくつか試して、いちばん自然に読める区切り方を選ぶ
+  // （「7」の左上のチョンや「4」「5」の2画目が、少しはなれて書かれても1文字として読むため）
+  const ref = Math.max(boxH * 0.3, ...groups.map(g => g.maxY - g.minY));
+  const best = [{ cost: 0, chars: [] }];
+  for (let i = 1; i <= groups.length; i++){
+    best[i] = { cost: Infinity, chars: [] };
+    for (let j = Math.max(0, i - 3); j < i; j++){
+      const ch = readChar(groups.slice(j, i), ref, best[j].chars.length === 0);
+      if (!ch || best[j].cost + ch.cost >= best[i].cost) continue;
+      best[i] = { cost: best[j].cost + ch.cost, chars: ch.label ? best[j].chars.concat([ch]) : best[j].chars };
+    }
+  }
+  const chars = best[groups.length].chars;
+  return { text: chars.map(c => c.label).join(''), groups: chars };
+}
+
+/* ============================================================
+   3. 手書きの線をかく（計算スペース・答えの欄）
+   ============================================================ */
+let lastPen = 0;   // Apple Pencil を最後に使った時刻（手のひらがふれても線をかかないため）
+let inks = [];
+
+function createInk(wrap, opt){
+  const canvas = document.createElement('canvas');
+  wrap.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const ink = { strokes: [], tool: 'pen' };
+  let cur = null;
+
+  function style(){
+    ctx.strokeStyle = opt.color; ctx.lineWidth = opt.width;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  }
+  function redraw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    style();
+    for (const s of ink.strokes){
+      ctx.beginPath();
+      ctx.moveTo(s[0].x, s[0].y);
+      if (s.length === 1) ctx.lineTo(s[0].x + 0.1, s[0].y);
+      for (let i = 1; i < s.length; i++) ctx.lineTo(s[i].x, s[i].y);
+      ctx.stroke();
+    }
+  }
+  function resize(){
+    const r = wrap.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.round(r.width * dpr));
+    canvas.height = Math.max(1, Math.round(r.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    redraw();
+  }
+  function at(e){
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  function erase(p){
+    const n = ink.strokes.length;
+    ink.strokes = ink.strokes.filter(s => !s.some(q => dist(p, q) < 14));
+    if (ink.strokes.length !== n){ cur.changed = true; redraw(); }
+  }
+  function changed(){ if (opt.onChange) opt.onChange(); }
+
+  canvas.addEventListener('pointerdown', e => {
+    if (opt.locked && opt.locked()) return;
+    if (e.pointerType === 'pen'){
+      lastPen = Date.now();
+      if (cur && cur.type !== 'pen'){             // 先にふれた手のひらの線は取り消す
+        const i = ink.strokes.indexOf(cur.s);
+        if (i >= 0) ink.strokes.splice(i, 1);
+        cur = null;
+        redraw();
+      }
+    } else if (e.pointerType === 'touch' && Date.now() - lastPen < 5000) {
+      return;                                     // ペンを使っている間は、指や手のひらを無視
+    }
+    if (cur) return;
+    e.preventDefault();
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    const p = at(e);
+    if (opt.onStart) opt.onStart();
+    cur = { id: e.pointerId, type: e.pointerType };
+    if (ink.tool === 'eraser') erase(p);
+    else { cur.s = [p]; ink.strokes.push(cur.s); redraw(); }
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!cur || e.pointerId !== cur.id) return;
+    if (cur.type === 'pen') lastPen = Date.now();
+    const evs = (e.getCoalescedEvents && e.getCoalescedEvents()) || [];
+    for (const ev of evs.length ? evs : [e]){
+      const p = at(ev);
+      if (!cur.s){ erase(p); continue; }
+      const last = cur.s[cur.s.length - 1];
+      if (dist(p, last) < 1) continue;
+      cur.s.push(p);
+      style();
+      ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    }
+  });
+  const end = e => {
+    if (!cur || e.pointerId !== cur.id) return;
+    const done = cur;
+    cur = null;
+    if (done.s || done.changed) changed();
+  };
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointercancel', end);
+  // 長押ししたときに、拡大鏡や文字選択が出ないようにする
+  canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+
+  ink.clear = () => { ink.strokes = []; redraw(); changed(); };
+  ink.undo = () => { if (ink.strokes.length){ ink.strokes.pop(); redraw(); changed(); } };
+  ink.setTool = t => { ink.tool = t; };
+
+  const ro = window.ResizeObserver ? new ResizeObserver(resize) : null;
+  if (ro) ro.observe(wrap); else window.addEventListener('resize', resize);
+  ink.destroy = () => { if (ro) ro.disconnect(); else window.removeEventListener('resize', resize); };
+  resize();
+  inks.push(ink);
+  return ink;
+}
+
+/* ============================================================
+   4. 画面の状態
+   ============================================================ */
+const app = document.getElementById('app');
+const state = { unit:null, total:10, qs:[], i:0, input:'', read:null, choice:null, locked:false, results:[], t0:0 };
+let workInk = null, ansInk = null, readTimer = null, nextTimer = null;
+const READ_WAIT = 900;   // ペンをはなしてから、答えを読みとるまでの時間（ミリ秒）
+const TYPE_TAG = { num: '計算', choice: 'えらぶ', recall: '思い出す', write: '漢字で書く' };
+
+function fmtTime(ms){
+  const s = Math.round(ms / 1000);
+  return Math.floor(s / 60) + '分' + String(s % 60).padStart(2, '0') + '秒';
+}
+
+// 画面を切りかえる前に、手書きの後かたづけをする
+function resetScreen(className){
+  inks.forEach(i => i.destroy());
+  inks = [];
+  clearTimeout(readTimer);
+  clearTimeout(nextTimer);
+  readTimer = nextTimer = null;
+  ansInk = null;
+  app.className = className;
+}
+
+/* ---- とき方の表示 ---- */
+function mathLines(m){
+  // 長い式は「＝」のところで改行する
+  return [].concat(m).flatMap(s => s.length <= 22 ? [s] : s.split(' ＝ ').map((p, i) => (i ? '＝ ' : '') + p));
+}
+function stepsHTML(q){
+  return '<ol class="steps">' + q.steps.map(s => `
+    <li>
+      ${s.say ? `<p>${s.say}</p>` : ''}
+      ${s.math ? `<div class="m num">${mathLines(s.math).map(l => `<span>${l}</span>`).join('')}</div>` : ''}
+    </li>`).join('') + '</ol>';
+}
+function hintFor(q){
+  if (q.type === 'write') return '書けなかった漢字は、お手本を見ながら練習スペースに3回書いてから、つぎへ進もう。手を動かすと形が記憶に残りやすくなります。';
+  if (q.type === 'recall') return '思い出そうとしたこと自体が、記憶を強くします。とき方を読んだら、目をとじて、もう一度言ってみよう。';
+  if (q.shiryo) return 'まちがいは、のびるチャンス。資料のどこを見れば答えが決まるのか、とき方と見くらべてみよう。';
+  if (q.type === 'choice') return 'まちがいは、のびるチャンス。とき方の<b>きまり</b>を読んで、どの言葉が手がかりになるかをたしかめよう。';
+  return 'まちがいは、のびるチャンス。メモスペースに式を書きながら、とき方と1つずつくらべてみよう。';
+}
+// 「5 g/cm³」「光合成」のように、答えを表示用の文字にする
+function answerText(q, v){
+  if (v === null || v === undefined) return q.type === 'write' ? '書けなかった' : '思い出せなかった';
+  return q.type === 'num' ? numText(v) + (q.suffix ? ' ' + q.suffix : '') : String(v);
+}
+function explainHTML(q, mine){
+  return `
+    <div class="ex-top">
+      <span class="mine">きみの答え<b>${answerText(q, mine)}</b></span>
+      <span class="correct">正しい答え<b>${answerText(q, q.answer)}</b></span>
+    </div>
+    <p class="hint">${hintFor(q)}</p>
+    <div class="ex-h"><h3>とき方</h3><button class="all" type="button">ぜんぶ見る</button></div>
+    ${stepsHTML(q)}`;
+}
+
+/* ---- トップ画面 ---- */
+function screenHome(){
+  resetScreen('');
+  app.innerHTML = `
+    <div class="top-row">
+      <p class="title">中1社会ドリル</p>
+      <span class="switches"><a class="switch" href="index.html">数学</a><a class="switch" href="science.html">理科</a><a class="switch" href="kokugo.html">国語</a></span>
+    </div>
+    <p class="lead">分野をえらぶと、毎回ちがう問題が出ます。計算・えらぶ・思い出す・漢字で書く の形がまざります。</p>
+    <div class="menu">
+      ${UNITS.map(u => `
+        <button class="unit" data-unit="${u.id}">
+          <span class="mark">${u.mark}</span>
+          <span><b>${u.name}${u.badge ? `<span class="badge">${u.badge}</span>` : ''}</b><span>${u.hint}</span></span>
+        </button>`).join('')}
+    </div>
+    <div class="count">
+      <span>問題数</span>
+      ${[5, 10, 20].map(n => `<button data-n="${n}" aria-pressed="${state.total === n}">${n}問</button>`).join('')}
+    </div>
+    <p class="tip">「漢字で書く」問題は、Apple Pencil でマスに書いてから「答えを見る」を押し、お手本とくらべて自分で ○× をつけよう。見るだけより、思い出しながら書くほうが、ずっと忘れにくくなります。時差や人口密度の計算は、メモスペースに式を書いてから答えよう。</p>`;
+
+  app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
+    state.total = Number(b.dataset.n);
+    screenHome();
+  });
+  app.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => {
+    state.unit = b.dataset.unit;
+    startQuiz(makeQuestions(state.unit, state.total));
+  });
+}
+
+/* ---- 出題画面 ---- */
+function startQuiz(questions){
+  state.qs = questions;
+  state.i = 0;
+  state.results = [];
+  state.t0 = Date.now();
+  resetAnswer();
+  screenQuiz();
+}
+function resetAnswer(){
+  state.input = '';
+  state.read = null;
+  state.choice = null;
+  state.locked = false;
+}
+
+// 答えるところ（問題の形によってちがう）
+function answerHTML(q){
+  if (q.type === 'write'){
+    return `
+      <div class="answer" id="answer">
+        <div class="head">
+          <span>ここに書こう（書けたら「答えを見る」）</span>
+          <span class="tools">
+            <button data-ans="undo">もどす</button>
+            <button data-ans="clear">けす</button>
+          </span>
+        </div>
+        <div class="write-row">
+          <div class="ink ans write-box card" id="ans"><span class="ph" id="ph">ここに書く</span></div>
+          <div class="model" id="model" hidden></div>
+        </div>
+      </div>`;
+  }
+  if (q.type === 'choice'){
+    return `
+      <div class="answer" id="answer">
+        <div class="head"><span>答えをえらぼう</span></div>
+        <div class="choices">
+          ${q.choices.map((c, k) => `<button class="choice" data-c="${k}"><span class="key">${'ABCD'[k]}</span><span>${c}</span></button>`).join('')}
+        </div>
+      </div>`;
+  }
+  if (q.type === 'recall'){
+    return `
+      <div class="answer" id="answer">
+        <div class="recall-box" id="recallBox">
+          <p class="recall-say">答えを <b>頭の中で</b> 思い出そう。<br>メモスペースに書いてもいいよ。</p>
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="answer" id="answer">
+      <div class="head">
+        <span>答えを書こう（キーでも入力できます）</span>
+        <span class="tools">
+          <button data-ans="undo">もどす</button>
+          <button data-ans="clear">けす</button>
+        </span>
+      </div>
+      <div class="ans-row">
+        <div class="ink ans card" id="ans"><span class="ph" id="ph">ここに数字を書く</span></div>
+        ${q.suffix ? `<span class="suf">${q.suffix}</span>` : ''}
+      </div>
+      <div class="read" id="slot">
+        <span class="label" id="readLabel">きみの答え</span>
+        <span class="val num" id="val"></span>
+      </div>
+      <div class="keys">
+        ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="num" data-k="${n}">${n}</button>`).join('')}
+        <button class="num" data-k="-">−</button>
+        <button class="num" data-k="0">0</button>
+        <button data-k="del">⌫</button>
+      </div>
+    </div>`;
+}
+
+function screenQuiz(){
+  resetScreen('is-quiz');
+  const q = state.qs[state.i];
+  const selfCheck = q.type === 'recall' || q.type === 'write';
+  const goLabel = selfCheck ? '答えを見る' : '答え合わせ';
+  app.innerHTML = `
+    <div class="bar">
+      <span class="num">${state.i + 1} / ${state.qs.length}</span>
+      <button class="quit">やめる</button>
+    </div>
+    <div class="dots" aria-hidden="true">${state.qs.map((_, k) => `<i class="${k < state.i ? 'done' : k === state.i ? 'now' : ''}"></i>`).join('')}</div>
+    <div class="main">
+      <section class="left${q.shiryo ? ' has-shiryo' : ''}">
+        <div class="q word"><span class="tag">${q.shiryo ? '資料' : TYPE_TAG[q.type]}</span>${q.text}</div>
+        ${q.shiryo ? `<div class="shiryo card"><h3>${q.shiryo.title}</h3><p class="cap">折れ線：気温（℃、左のめもり）／棒：降水量（mm、右のめもり）／横：1〜12月</p>${q.shiryo.body}</div>` : ''}
+        <div class="work card">
+          <div class="head">
+            <span>${q.type === 'write' ? '練習スペース' : 'メモスペース'}</span>
+            <span class="tools">
+              <button data-tool="pen" aria-pressed="true">ペン</button>
+              <button data-tool="eraser" aria-pressed="false">消しゴム</button>
+              <button data-work="undo">もどす</button>
+              <button data-work="clear">全部けす</button>
+            </span>
+          </div>
+          <div class="ink" id="work"></div>
+        </div>
+      </section>
+      <section class="right" id="right">
+        ${answerHTML(q)}
+        <div class="explain" id="explain" hidden></div>
+        <div class="self" id="self" hidden>
+          <button class="self-ng" id="selfNg">× 思い出せなかった</button>
+          <button class="self-ok" id="selfOk">○ 思い出せた</button>
+        </div>
+        <button class="go" id="go" ${selfCheck ? '' : 'disabled'}>${goLabel}</button>
+      </section>
+    </div>`;
+
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--pen').trim();
+  workInk = createInk(document.getElementById('work'), { color, width: 2.5 });
+
+  app.querySelector('.quit').onclick = screenHome;
+  app.querySelectorAll('[data-tool]').forEach(b => b.onclick = () => {
+    workInk.setTool(b.dataset.tool);
+    app.querySelectorAll('[data-tool]').forEach(t => t.setAttribute('aria-pressed', t === b));
+  });
+  app.querySelector('[data-work="undo"]').onclick = () => workInk.undo();
+  app.querySelector('[data-work="clear"]').onclick = () => workInk.clear();
+  document.getElementById('go').onclick = submit;
+
+  if (q.type === 'write'){
+    ansInk = createInk(document.getElementById('ans'), {
+      color, width: 6,
+      locked: () => state.locked,
+      onChange: () => { document.getElementById('ph').hidden = ansInk.strokes.length > 0; }
+    });
+    app.querySelector('[data-ans="undo"]').onclick = () => { if (!state.locked) ansInk.undo(); };
+    app.querySelector('[data-ans="clear"]').onclick = () => { if (!state.locked) ansInk.clear(); };
+  }
+  if (q.type === 'num'){
+    ansInk = createInk(document.getElementById('ans'), {
+      color, width: 5,
+      locked: () => state.locked,
+      // 書いている間は読まない。ペンをはなしてしばらくたってから、書き上がった字をまとめて読む
+      onStart: () => { clearTimeout(readTimer); readTimer = -1; draw(); },
+      onChange: () => { clearTimeout(readTimer); readTimer = setTimeout(readAnswer, READ_WAIT); draw(); }
+    });
+    app.querySelector('[data-ans="undo"]').onclick = () => { if (!state.locked){ ansInk.undo(); readAnswer(); } };
+    app.querySelector('[data-ans="clear"]').onclick = () => { if (!state.locked){ ansInk.clear(); readAnswer(); } };
+    app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => press(b.dataset.k));
+    draw();
+  }
+  if (q.type === 'choice'){
+    app.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
+      if (state.locked) return;
+      state.choice = Number(b.dataset.c);
+      app.querySelectorAll('[data-c]').forEach(c => c.setAttribute('aria-pressed', c === b));
+      document.getElementById('go').disabled = false;
+    });
+  }
+}
+
+// 答えの欄に書いた数字を読みとる
+function readAnswer(){
+  clearTimeout(readTimer);
+  readTimer = null;
+  if (!ansInk || state.locked) return;
+  state.read = ansInk.strokes.length ? readInk(ansInk.strokes, document.getElementById('ans').clientHeight) : null;
+  state.input = state.read ? state.read.text : '';
+  draw();
+}
+
+function press(k){
+  if (state.locked || !ansInk) return;
+  if (readTimer) readAnswer();   // 書いた字を先に読んでから、キーで直す
+  if (k === 'del') state.input = state.input.slice(0, -1);
+  else if (k === '-') state.input = state.input.startsWith('-') ? state.input.slice(1) : '-' + state.input;
+  else if (state.input.replace('-', '').length < 5) state.input += k;
+  draw();
+}
+
+function draw(){
+  const val = document.getElementById('val');
+  if (!val || !ansInk) return;
+  const waiting = readTimer !== null;   // 書いている途中か、読みとる前
+  const unreadable = !waiting && state.input.includes('?');
+  val.textContent = waiting ? '…' : state.input === '' ? '—' : state.input.replace('-', '−').replace(/\?/g, '？');
+  val.classList.toggle('empty', waiting || state.input === '');
+  document.getElementById('readLabel').textContent = unreadable ? '読みとれない字があります。書きなおすか、キーで直してね' : 'きみの答え';
+  // 読みとる前でも「答え合わせ」は押せる（押したときに読みとる）
+  document.getElementById('go').disabled = waiting ? ansInk.strokes.length === 0 : !/^-?\d+$/.test(state.input);
+  document.getElementById('ph').hidden = ansInk.strokes.length > 0;
+}
+
+// 読みまちがえた1文字をキーで直したときは、その字の形を覚える
+function learnFromFix(){
+  const r = state.read;
+  if (!r || r.text === state.input || r.text.length !== state.input.length) return;
+  const diff = [...state.input].map((ch, i) => ch !== r.text[i] ? i : -1).filter(i => i >= 0);
+  if (diff.length !== 1) return;
+  const i = diff[0], ch = state.input[i];
+  if (/\d/.test(ch) && r.groups[i].pts) learn(ch, r.groups[i].pts);
+}
+
+function submit(){
+  if (state.locked) return;
+  const q = state.qs[state.i];
+  if (q.type === 'recall' || q.type === 'write') return revealRecall(q);
+  let mine;
+  if (q.type === 'choice'){
+    if (state.choice === null) return;
+    mine = q.choices[state.choice];
+  } else {
+    if (readTimer) readAnswer();
+    if (!/^-?\d+$/.test(state.input)) return;
+    learnFromFix();
+    mine = Number(state.input);
+  }
+  state.locked = true;
+  const ok = mine === q.answer;
+  if (q.type === 'choice'){
+    app.querySelectorAll('[data-c]').forEach((b, k) => {
+      b.disabled = true;
+      if (q.choices[k] === q.answer) b.classList.add('is-ok');
+      else if (k === state.choice) b.classList.add('is-ng');
+    });
+  }
+  finish(q, mine, ok);
+}
+
+// 「思い出す」問題：答えを見せて、自分で ○× をつける
+function revealRecall(q){
+  state.locked = true;
+  if (q.type === 'write'){
+    const m = document.getElementById('model');
+    m.innerHTML = `
+      <p class="recall-label">お手本</p>
+      <p class="model-ch">${q.answer}</p>
+      <p class="recall-q">${q.sub}</p>`;
+    m.hidden = false;
+    document.getElementById('selfOk').textContent = '○ 正しく書けた';
+    document.getElementById('selfNg').textContent = '× 書けなかった';
+  } else {
+    document.getElementById('recallBox').innerHTML = `
+      <p class="recall-label">答え</p>
+      <p class="recall-ans">${q.answer}</p>
+      <p class="recall-q">頭の中で思い出した答えと、合っていましたか？</p>`;
+  }
+  document.getElementById('go').hidden = true;
+  document.getElementById('self').hidden = false;
+  document.getElementById('selfOk').onclick = () => finish(q, q.answer, true);
+  document.getElementById('selfNg').onclick = () => finish(q, null, false);
+}
+
+function finish(q, mine, ok){
+  state.results.push({ q, mine, ok });
+  const go = document.getElementById('go');
+  document.getElementById('self').hidden = true;
+  go.hidden = false;
+  if (ok){
+    // ほめるのは「頭のよさ」ではなく、やり方やがんばり
+    const praise = q.type === 'recall' ? '自分の力で思い出せたね'
+      : q.type === 'write' ? '思い出しながら書けたね'
+      : q.shiryo ? '資料から手がかりを見つけられたね'
+      : q.type === 'num' ? pick(['式を立てて計算できたね', 'たんいまで気をつけられたね', 'その調子で続けよう'])
+      : pick(['きまりを思い出して考えられたね', 'ていねいに読めたね', '集中できているね', 'その調子で続けよう']);
+    go.textContent = '○ 正解！ ' + praise;
+    go.classList.add('ok');
+    go.disabled = true;
+    nextTimer = setTimeout(nextQuestion, q.type === 'choice' ? 1500 : 1300);
+    return;
+  }
+  showExplanation(q, mine);
+}
+
+// とき方は1行ずつ開く。つぎの行を自分で考えてから見ると、ただ読むより記憶に残りやすい
+function showExplanation(q, mine){
+  const go = document.getElementById('go');
+  const ex = document.getElementById('explain');
+  ex.innerHTML = explainHTML(q, mine);
+  ex.hidden = false;
+  if (q.type !== 'choice') document.getElementById('answer').hidden = true;
+  document.getElementById('right').classList.add('explaining', 'is-' + q.type);
+  go.disabled = false;
+  const items = [...ex.querySelectorAll('.steps li')];
+  let shown = 1;
+  items.forEach((li, k) => { li.hidden = k >= shown; });
+  const update = () => {
+    const done = shown >= items.length;
+    go.textContent = done ? 'つぎの問題へ' : `つぎはどうなる？ 考えてからタップ（${shown} / ${items.length}）`;
+    go.classList.toggle('step', !done);
+    go.classList.toggle('next', done);
+    ex.querySelector('.all').hidden = done;
+  };
+  go.onclick = () => {
+    if (shown >= items.length) return nextQuestion();
+    items[shown].hidden = false;
+    items[shown].scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    shown++;
+    update();
+  };
+  ex.querySelector('.all').onclick = () => {
+    items.forEach(li => { li.hidden = false; });
+    shown = items.length;
+    update();
+  };
+  update();
+}
+
+function nextQuestion(){
+  state.i++;
+  resetAnswer();
+  if (state.i >= state.qs.length) screenResult();
+  else screenQuiz();
+}
+
+/* ---- 結果画面 ---- */
+// 点数だけでなく、つぎに何をすれば伸びるかを伝える
+function resultMessage(right, n){
+  if (right === n) return 'ぜんぶ正解！ 何日かあけて「まぜこぜ」でもう一度ためすと、さらに忘れにくくなります。';
+  if (right / n >= 0.7) return 'よくできました。まちがえた問題は、とき方を読んだあとにもう一度解くと、いちばん記憶に残ります。';
+  return 'まちがえた問題こそ、のびるチャンス。とき方を1行ずつ読んでから、もう一度ちょうせんしよう。';
+}
+
+function screenResult(){
+  resetScreen('');
+  const time = Date.now() - state.t0;
+  const wrong = state.results.filter(r => !r.ok);
+  const right = state.results.length - wrong.length;
+
+  app.innerHTML = `
+    <div class="score">
+      <div class="big num">${right}<u> / ${state.results.length}</u></div>
+      <p class="msg">${resultMessage(right, state.results.length)}</p>
+      <div class="sub">かかった時間 ${fmtTime(time)}</div>
+    </div>
+    <div class="review">
+      ${wrong.length === 0 ? '<h2>全問正解です。</h2>' : '<h2>まちがえた問題（タップすると、とき方が見られます）</h2>' + wrong.map(r => `
+        <details class="row">
+          <summary>
+            <span class="wq">${r.q.text}</span>
+            <span class="mine">きみの答え ${answerText(r.q, r.mine)}<b>${answerText(r.q, r.q.answer)}</b><span class="open">とき方 ▼</span></span>
+          </summary>
+          <div class="row-ex">${stepsHTML(r.q)}</div>
+        </details>`).join('')}
+    </div>
+    <div class="acts">
+      ${wrong.length ? '<button id="again-wrong">まちがえた問題をもう一度</button>' : ''}
+      <button id="again" class="${wrong.length ? 'ghost' : ''}">同じ分野でもう一度</button>
+      <button id="home" class="ghost">分野をえらびなおす</button>
+    </div>`;
+
+  const w = document.getElementById('again-wrong');
+  // もう一度のときは、選択肢の順番をかえる（位置で覚えてしまわないように）
+  if (w) w.onclick = () => startQuiz(wrong.map(r => r.q.choices ? { ...r.q, choices: shuffle(r.q.choices) } : r.q));
+  document.getElementById('again').onclick = () => startQuiz(makeQuestions(state.unit, state.total));
+  document.getElementById('home').onclick = screenHome;
+}
+
+/* ---- パソコンのキーボードでも操作できるように ---- */
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('go')) return;   // 出題画面のときだけ受けつける
+  const q = state.qs[state.i];
+  if (q && q.type === 'num'){
+    if (e.key >= '0' && e.key <= '9') press(e.key);
+    else if (e.key === '-') press('-');
+    else if (e.key === 'Backspace') press('del');
+  }
+  if (q && q.type === 'choice' && /^[1-4a-dA-D]$/.test(e.key)){
+    const k = /\d/.test(e.key) ? Number(e.key) - 1 : 'abcd'.indexOf(e.key.toLowerCase());
+    const b = app.querySelector(`[data-c="${k}"]`);
+    if (b) b.click();
+  }
+  if (e.key === 'Enter'){
+    const go = document.getElementById('go');
+    if (go && !go.disabled && !go.hidden) go.click();
+  }
+});
+
+screenHome();
+</script>
+</body>
+</html>

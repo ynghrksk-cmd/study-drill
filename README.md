@@ -4,5 +4,7 @@
 
 - 数学ドリル：https://ynghrksk-cmd.github.io/study-drill/
 - 理科ドリル：https://ynghrksk-cmd.github.io/study-drill/science.html
+- 国語ドリル：https://ynghrksk-cmd.github.io/study-drill/kokugo.html
+- 社会ドリル：https://ynghrksk-cmd.github.io/study-drill/shakai.html
 
 それぞれ1つの HTML ファイルで完結していて、問題は毎回自動で作られます。
