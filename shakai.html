@@ -423,6 +423,47 @@
   @media (min-width:1000px) and (orientation:landscape){
     .write-box{height:210px;}
   }
+
+  /* ---- 復習ボックス（5つのアプリで共通）---- */
+  .review-btn{
+    width:100%;margin:0 0 14px;padding:16px 18px;border-radius:14px;text-align:left;
+    background:var(--primary);color:#fff;display:flex;align-items:center;gap:14px;
+    box-shadow:0 1px 2px rgba(30,40,51,.08);
+  }
+  .review-btn:active{opacity:.85;}
+  .review-btn .mark{
+    width:40px;height:40px;flex:none;border-radius:10px;background:rgba(255,255,255,.18);
+    display:grid;place-items:center;font-size:1.2rem;font-weight:700;
+  }
+  .review-btn b{display:block;font-size:1.02rem;font-weight:700;}
+  .review-btn i{display:block;font-style:normal;font-size:.8rem;opacity:.85;margin-top:4px;line-height:1.5;}
+  .review-none{
+    margin:0 0 14px;padding:12px 16px;border-radius:12px;background:var(--ok-soft);
+    color:var(--ok);font-size:.86rem;font-weight:700;line-height:1.7;
+  }
+  .review-none i{display:block;font-style:normal;color:var(--ink-2);font-weight:400;margin-top:2px;font-size:.82rem;}
+  .box-state{
+    margin:14px 0 0;padding:11px 14px;border-radius:12px;background:var(--surface);
+    border:1px solid var(--line);font-size:.82rem;color:var(--ink-2);line-height:1.8;
+  }
+  .box-state b{color:var(--ink);}
+  .tag-again{
+    padding:3px 10px;border-radius:999px;background:var(--mark);color:var(--ink);
+    font-size:.72rem;font-weight:700;letter-spacing:.02em;
+  }
+  .again-note{
+    margin:10px 0 0;padding:9px 12px;border-radius:10px;background:var(--ok-soft);
+    color:var(--ok);font-size:.84rem;font-weight:700;line-height:1.7;
+  }
+  @media (min-width:700px){
+    .review-btn{padding:20px 22px;}
+    .review-btn .mark{width:48px;height:48px;font-size:1.45rem;}
+    .review-btn b{font-size:1.2rem;}
+    .review-btn i{font-size:.92rem;}
+    .review-none,.review-none i,.box-state{font-size:.95rem;}
+    .tag-again{font-size:.82rem;}
+    .again-note{font-size:.95rem;}
+  }
 </style>
 </head>
 <body>
@@ -955,17 +996,17 @@ function termSteps(t){
 // 用語 → えらぶ
 function termChoice(t){
   const pool = TERMS.filter(x => x.unit === t.unit && x.group === t.group).map(x => x.term);
-  return { unit:t.unit, type:'choice', answer:t.term, choices:makeChoices(t.term, pool),
+  return { unit:t.unit, type:'choice', answer:t.term, choices:makeChoices(t.term, pool), item:'term:' + t.term, label:t.term,
     text: `${t.desc}を何といいますか。`, steps: termSteps(t) };
 }
 // 用語 → 思い出す
 function termRecall(t){
-  return { unit:t.unit, type:'recall', answer:t.term,
+  return { unit:t.unit, type:'recall', answer:t.term, item:'term:' + t.term, label:t.term,
     text: `${t.desc}を何といいますか。`, steps: termSteps(t) };
 }
 // 用語 → 漢字で書く（お手本とくらべて自分で ○×）
 function termWrite(t){
-  return { unit:t.unit, type:'write', answer:t.term, sub:`読み：${t.y}`,
+  return { unit:t.unit, type:'write', answer:t.term, sub:`読み：${t.y}`, item:'term:' + t.term, label:t.term,
     text: `${t.desc}を何といいますか。<b>漢字</b>で右のマスに書きましょう。`,
     steps: [
       { say: 'お手本と、自分の書いた字を1字ずつくらべよう。<b>社会の用語は、漢字で正しく書けてこそ使える</b>ようになります。' },
@@ -976,6 +1017,7 @@ function termWrite(t){
 function sortChoice(s){
   const names = Object.keys(s.cats), cat = pick(names), item = pick(s.cats[cat]);
   return { unit:s.unit, type:'choice', answer:cat, choices:makeChoices(cat, names),
+    item: 'sort:' + SORTS.indexOf(s), label: '分類：' + names.join('・'),
     text: `${s.ask}<span class="item">${item}</span>`,
     steps: [
       { say: s.rule },
@@ -984,8 +1026,8 @@ function sortChoice(s){
     ] };
 }
 // 県庁所在地
-function kenchoQuestion(){
-  const k = pick(KENCHO);
+function kenchoQuestion(k){
+  k = k || pick(KENCHO);
   const pool = KENCHO.filter(x => x.k !== k.k).map(x => x.s);
   const steps = [
     { say: '<b>県名と県庁所在地の名前がちがう県</b>は、セットで覚えよう。' },
@@ -993,16 +1035,18 @@ function kenchoQuestion(){
     answerStep(k.s)
   ];
   if (Math.random() < 0.6){
-    return { unit:'sekai', type:'choice', answer:k.s, choices:makeChoices(k.s, pool),
+    return { unit:'sekai', type:'choice', answer:k.s, choices:makeChoices(k.s, pool), item:'kencho:' + k.k, label:'県庁所在地：' + k.k,
       text: `${k.k}の県庁所在地はどこですか。`, steps };
   }
-  return { unit:'sekai', type:'recall', answer:k.s, text: `${k.k}の県庁所在地を思い出しましょう。`, steps };
+  return { unit:'sekai', type:'recall', answer:k.s, item:'kencho:' + k.k, label:'県庁所在地：' + k.k,
+    text: `${k.k}の県庁所在地を思い出しましょう。`, steps };
 }
 // できごとの順番
 function eventOrder(unit){
   const two = shuffle(EVENTS.filter(e => e.unit === unit)).slice(0, 2).sort((a, b) => a.y - b.y);
   const [a, b] = two;
   return { unit, type:'choice', answer:a.name, choices:shuffle([a.name, b.name]),
+    item: 'event:' + unit, label: 'できごとの前後（' + (unit === 'kodai' ? '古代' : '武士の世') + '）',
     text: '次の2つのできごとのうち、<b>先に</b>起こったのはどちらですか。',
     steps: [
       { say: `<b>${a.name}</b>のは <b>${a.y}年</b>（${a.era}）。` },
@@ -1012,8 +1056,8 @@ function eventOrder(unit){
     ] };
 }
 // 雨温図の資料から読みとる
-function climateQuestion(){
-  const src = pick(CLIMATE);
+function climateQuestion(src){
+  src = src || pick(CLIMATE);
   // 数を少しだけゆらして、同じ都市でも毎回ちがうグラフにする
   const c = { ...src,
     t: src.t.map(v => v + rnd(-1, 1)),
@@ -1024,7 +1068,7 @@ function climateQuestion(){
   const r = Math.random();
   if (r < 0.25){
     const ans = c.south ? '南半球' : '北半球';
-    return { unit:'kurashi', type:'choice', answer:ans, choices:['北半球', '南半球'], shiryo,
+    return { unit:'kurashi', type:'choice', answer:ans, choices:['北半球', '南半球'], shiryo, item:'climate:' + src.city, label:'雨温図：' + src.city,
       text: 'この雨温図の都市は、北半球と南半球のどちらにありますか。',
       steps: [
         { say: '<b>北半球と南半球では季節が逆</b>になります。気温のグラフの山が、いつできているかを見ます。' },
@@ -1035,7 +1079,7 @@ function climateQuestion(){
   }
   if (r < 0.45){
     const pool = CLIMATE.filter(x => x.zone !== c.zone).map(x => x.city);
-    return { unit:'kurashi', type:'choice', answer:c.city, choices:makeChoices(c.city, pool), shiryo,
+    return { unit:'kurashi', type:'choice', answer:c.city, choices:makeChoices(c.city, pool), shiryo, item:'climate:' + src.city, label:'雨温図：' + src.city,
       text: 'この雨温図に当てはまる都市はどれですか。',
       steps: [
         { say: '<b>まず気温</b>（最も暖かい月・最も寒い月・その差）、<b>つぎに降水量</b>の多い時期を読みとって、気候帯を決めます。' },
@@ -1045,7 +1089,7 @@ function climateQuestion(){
         answerStep(c.city)
       ] };
   }
-  return { unit:'kurashi', type:'choice', answer:c.zone, choices:makeChoices(c.zone, ['熱帯', '乾燥帯', '温帯', '亜寒帯', '寒帯']), shiryo,
+  return { unit:'kurashi', type:'choice', answer:c.zone, choices:makeChoices(c.zone, ['熱帯', '乾燥帯', '温帯', '亜寒帯', '寒帯']), shiryo, item:'climate:' + src.city, label:'雨温図：' + src.city,
     text: 'この雨温図に当てはまる気候帯はどれですか。',
     steps: [
       { say: '<b>まず気温</b>を見ます。最も寒い月が18℃以上 → 熱帯、最も暖かい月が10℃未満 → 寒帯、冬が−3℃より低く夏が暖かい → 亜寒帯、四季がはっきり → 温帯。<b>降水量がとても少なければ乾燥帯</b>です。' },
@@ -1056,6 +1100,39 @@ function climateQuestion(){
 }
 
 const TYPE_RATE = { num: 0.25, choice: 0.45, write: 0.12 };   // のこりは「思い出す」問題
+
+// 計算問題の名前（復習ボックスの一覧で見せる）
+const CALC_LABEL = {
+  calcTimeDiff:'時差の計算', calcLocalTime:'現地の時刻の計算', calcMeridian:'標準時子午線の計算', calcScale:'縮尺の計算',
+  calcDensity:'人口密度の計算', calcShare:'割合の計算', calcCentury:'何世紀かの計算', calcYearGap:'年数の計算'
+};
+const CALC_ALL = {};
+Object.keys(CALC).forEach(u => CALC[u].forEach(f => { CALC_ALL[f.name] = f; }));
+function calcQuestion(f, unit){
+  const q = f(unit);
+  q.item = 'calc:' + f.name + ':' + unit;
+  q.label = (CALC_LABEL[f.name] || f.name);
+  return q;
+}
+// 復習ボックスの項目から、同じきまりの新しい問題を作りなおす
+function regenFor(key){
+  const i = key.indexOf(':'), kind = key.slice(0, i), id = key.slice(i + 1);
+  if (kind === 'term'){
+    const t = TERMS.find(x => x.term === id);
+    if (!t) return null;
+    const r = Math.random();
+    return r < 0.5 ? termChoice(t) : (r < 0.75 && t.y ? termWrite(t) : termRecall(t));
+  }
+  if (kind === 'sort'){ const s = SORTS[Number(id)]; return s ? sortChoice(s) : null; }
+  if (kind === 'kencho'){ const k = KENCHO.find(x => x.k === id); return k ? kenchoQuestion(k) : null; }
+  if (kind === 'climate'){ const c = CLIMATE.find(x => x.city === id); return c ? climateQuestion(c) : null; }
+  if (kind === 'event'){ return EVENTS.some(e => e.unit === id) ? eventOrder(id) : null; }
+  if (kind === 'calc'){
+    const at = id.indexOf(':'), f = CALC_ALL[id.slice(0, at)];
+    return f ? calcQuestion(f, id.slice(at + 1)) : null;
+  }
+  return null;
+}
 
 // えらぶ問題は、用語・分類・その分野だけの問題（県庁所在地／雨温図／できごとの順番）をまぜて出す
 function choiceQuestion(unit){
@@ -1075,7 +1152,7 @@ function genShakai(unit){
   const terms = TERMS.filter(t => t.unit === unit);
   const writables = terms.filter(t => t.y);   // 読みをつけた用語だけ「漢字で書く」問題にする
   const r = Math.random();
-  if (r < TYPE_RATE.num && calcs.length) return pick(calcs)(unit);
+  if (r < TYPE_RATE.num && calcs.length) return calcQuestion(pick(calcs), unit);
   if (r < TYPE_RATE.num + TYPE_RATE.choice) return choiceQuestion(unit);
   if (r < TYPE_RATE.num + TYPE_RATE.choice + TYPE_RATE.write && writables.length) return termWrite(pick(writables));
   return termRecall(pick(terms));
@@ -1103,6 +1180,112 @@ function makeQuestions(unitId, n){
     list.push(q);
   }
   return list;
+}
+
+const BOX_KEY = 'study-drill-review-shakai';   // 復習ボックスの記録（この端末だけ）
+
+/* ============================================================
+   1-2. 復習ボックス（5つのアプリで共通。まちがえた問題を、日をあけて出しなおす）
+      とき方を読むだけでは、記憶に残りにくい（読むと「わかった気」になりやすい）。
+      <b>自分の力でもう一度思い出すこと</b>と、<b>間をあけてくり返すこと</b>で、
+      記憶はいちばん強くなる（検索練習・分散学習）。そこで、
+        ・まちがえた問題の「きまり（項目）」をこの端末に記録する
+        ・1日後 → 3日後 → 1週間後 → 16日後 → 35日後 と、間かくをのばして出しなおす
+        ・出すのは同じ問題ではなく、同じきまりから作った<b>新しい問題</b>（regenFor）
+          問題文ごと覚えてしまうと「解けた気」になるだけで、考え方が身につかないため
+        ・正解しても、同じ日のうちは間かくを進めない（間をあけることに意味があるため）
+        ・BOX_STEPS ぶん正解できたら、その項目は卒業（記録から消える）
+      記録はこの端末（localStorage）だけに残る。Safari のサイトデータを消すと、記録も消える。
+   ============================================================ */
+const BOX_STEPS = [1, 3, 7, 16, 35];   // 正解するたびに、つぎの復習までの日数をのばす
+
+// 今日が「1970年から何日目か」。時こくを気にせず日づけの計算ができるようにする
+function today(){
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return Math.round(d.getTime() / 86400000);
+}
+let box = null;
+function getBox(){
+  if (!box){
+    try { box = JSON.parse(localStorage.getItem(BOX_KEY)); } catch (e) { box = null; }
+    if (!box || typeof box !== 'object') box = {};
+  }
+  return box;
+}
+function saveBox(){ try { localStorage.setItem(BOX_KEY, JSON.stringify(getBox())); } catch (e) {} }
+
+// まちがえた → 箱をいちばん最初にもどして、あした もう一度
+function boxMiss(q){
+  if (!q.item) return;
+  const b = getBox(), t = today();
+  const it = b[q.item] || (b[q.item] = { n: 0, ng: 0 });
+  it.n = 0;
+  it.due = t + 1;
+  it.d = t;
+  it.ng = (it.ng || 0) + 1;
+  it.label = q.label || it.label || q.item;
+  saveBox();
+}
+// 正解した → つぎの復習までの間かくをのばす。卒業したら true
+function boxHit(q){
+  if (!q.item) return false;
+  const b = getBox(), t = today(), it = b[q.item];
+  if (!it || it.d === t) return false;   // 記録がない、または同じ日にもう進めたときは何もしない
+  it.n++;
+  it.d = t;
+  if (it.n >= BOX_STEPS.length){ delete b[q.item]; saveBox(); return true; }
+  it.due = t + BOX_STEPS[it.n];
+  saveBox();
+  return false;
+}
+// 今日出す分（間かくが来たもの）。まちがえた回数が多いものを先に
+function dueKeys(){
+  const b = getBox(), t = today();
+  return Object.keys(b).filter(k => b[k].due <= t).sort((x, y) => b[x].due - b[y].due || b[y].ng - b[x].ng);
+}
+function boxSize(){ return Object.keys(getBox()).length; }
+function nextDueDay(){
+  const b = getBox(), ds = Object.keys(b).map(k => b[k].due);
+  return ds.length ? Math.min(...ds) : null;
+}
+// 日づけを「今日」「あした」「9月20日」のように表す
+function dayText(d){
+  const t = today();
+  if (d <= t) return '今日';
+  if (d === t + 1) return 'あした';
+  const dt = new Date();
+  dt.setHours(0, 0, 0, 0);
+  dt.setDate(dt.getDate() + (d - t));
+  return (dt.getMonth() + 1) + '月' + dt.getDate() + '日';
+}
+// 復習の問題を作る（記録した項目から、新しい問題を作りなおす）
+function makeReviewQuestions(n){
+  const list = [];
+  for (const key of dueKeys()){
+    if (list.length >= n) break;
+    const q = regenFor(key);
+    if (q){ q.item = key; q.review = true; list.push(q); }
+  }
+  return list;
+}
+// トップ画面のいちばん上に出す「今日の復習」
+function reviewHomeHTML(){
+  const n = dueKeys().length, next = nextDueDay();
+  if (n) return `
+    <button class="review-btn" id="go-review">
+      <span class="mark">⟳</span>
+      <span><b>今日の復習　${n}問</b><i>まちがえた問題を、わすれたころに出しています。同じきまりの新しい問題です。</i></span>
+    </button>`;
+  if (next !== null) return `<p class="review-none">今日の復習はおわりました。<i>つぎの復習は ${dayText(next)}（${boxSize()}問）。それまでは、新しい問題にちょうせんしよう。</i></p>`;
+  return '';
+}
+// 結果画面に出す、復習ボックスのようす
+function boxStateHTML(grad){
+  const next = nextDueDay(), n = boxSize();
+  const g = grad ? `<b>${grad}問</b>が復習ボックスを卒業しました（${BOX_STEPS.length}回、間をあけて正解できました）。<br>` : '';
+  if (!n) return `<p class="box-state">${g}復習ボックスは空です。まちがえた問題は、ここに入って あした からもう一度出ます。</p>`;
+  return `<p class="box-state">${g}復習ボックス：<b>${n}問</b>／つぎの復習は <b>${dayText(next)}</b>。<br>同じ日にくり返すより、<b>日をあけて思い出す</b>ほうが忘れにくくなります。</p>`;
 }
 
 /* ============================================================
@@ -1424,7 +1607,7 @@ function createInk(wrap, opt){
    4. 画面の状態
    ============================================================ */
 const app = document.getElementById('app');
-const state = { unit:null, total:10, qs:[], i:0, input:'', read:null, choice:null, locked:false, results:[], t0:0 };
+const state = { unit:null, mode:'normal', total:10, qs:[], i:0, input:'', read:null, choice:null, locked:false, results:[], t0:0, retried:new Set(), grad:0 };
 let workInk = null, ansInk = null, readTimer = null, nextTimer = null;
 const READ_WAIT = 900;   // ペンをはなしてから、答えを読みとるまでの時間（ミリ秒）
 const TYPE_TAG = { num: '計算', choice: 'えらぶ', recall: '思い出す', write: '漢字で書く' };
@@ -1489,6 +1672,7 @@ function screenHome(){
       <span class="switches"><a class="switch" href="index.html">数学</a><a class="switch" href="science.html">理科</a><a class="switch" href="kokugo.html">国語</a><a class="switch" href="eigo.html">英語</a></span>
     </div>
     <p class="lead">分野をえらぶと、毎回ちがう問題が出ます。計算・えらぶ・思い出す・漢字で書く の形がまざります。</p>
+    ${reviewHomeHTML()}
     <div class="menu">
       ${UNITS.map(u => `
         <button class="unit" data-unit="${u.id}">
@@ -1500,7 +1684,7 @@ function screenHome(){
       <span>問題数</span>
       ${[5, 10, 20].map(n => `<button data-n="${n}" aria-pressed="${state.total === n}">${n}問</button>`).join('')}
     </div>
-    <p class="tip">「漢字で書く」問題は、Apple Pencil でマスに書いてから「答えを見る」を押し、お手本とくらべて自分で ○× をつけよう。見るだけより、思い出しながら書くほうが、ずっと忘れにくくなります。時差や人口密度の計算は、メモスペースに式を書いてから答えよう。</p>`;
+    <p class="tip">「漢字で書く」問題は、Apple Pencil でマスに書いてから「答えを見る」を押し、お手本とくらべて自分で ○× をつけよう。見るだけより、思い出しながら書くほうが、ずっと忘れにくくなります。時差や人口密度の計算は、メモスペースに式を書いてから答えよう。<br>まちがえた問題は<b>復習ボックス</b>に入り、1日後・3日後・1週間後…と、わすれたころに出しなおされます。</p>`;
 
   app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
     state.total = Number(b.dataset.n);
@@ -1510,11 +1694,19 @@ function screenHome(){
     state.unit = b.dataset.unit;
     startQuiz(makeQuestions(state.unit, state.total));
   });
+  const rv = document.getElementById('go-review');
+  if (rv) rv.onclick = () => {
+    state.unit = 'review';
+    startQuiz(makeReviewQuestions(state.total), 'review');
+  };
 }
 
 /* ---- 出題画面 ---- */
-function startQuiz(questions){
+function startQuiz(questions, mode){
   state.qs = questions;
+  state.mode = mode || 'normal';
+  state.retried = new Set();   // 同じ回の中で「もう一度」を出した項目
+  state.grad = 0;              // この回で復習ボックスを卒業した数
   state.i = 0;
   state.results = [];
   state.t0 = Date.now();
@@ -1596,7 +1788,7 @@ function screenQuiz(){
   const goLabel = selfCheck ? '答えを見る' : '答え合わせ';
   app.innerHTML = `
     <div class="bar">
-      <span class="num">${state.i + 1} / ${state.qs.length}</span>
+      <span class="num">${state.i + 1} / ${state.qs.length}${q.again ? ' <span class="tag-again">もう一度</span>' : q.review ? ' <span class="tag-again">復習</span>' : ''}</span>
       <button class="quit">やめる</button>
     </div>
     <div class="dots" aria-hidden="true">${state.qs.map((_, k) => `<i class="${k < state.i ? 'done' : k === state.i ? 'now' : ''}"></i>`).join('')}</div>
@@ -1764,14 +1956,31 @@ function revealRecall(q){
   document.getElementById('selfNg').onclick = () => finish(q, null, false);
 }
 
+// まちがえた問題は、すぐではなく2〜3問あとに、同じきまりの新しい問題としてもう一度出す
+// （すぐ解きなおすより、少し間をあけて思い出すほうが記憶に残りやすい）
+function queueRetry(q){
+  if (!q.item || q.again || state.retried.has(q.item)) return;
+  const again = regenFor(q.item);
+  if (!again) return;
+  state.retried.add(q.item);
+  again.item = q.item;
+  again.label = q.label;
+  again.again = true;
+  state.qs.splice(Math.min(state.i + 3, state.qs.length), 0, again);
+}
+
 function finish(q, mine, ok){
   state.results.push({ q, mine, ok });
+  if (ok){ if (boxHit(q)) state.grad++; }
+  else { boxMiss(q); queueRetry(q); }
   const go = document.getElementById('go');
   document.getElementById('self').hidden = true;
   go.hidden = false;
   if (ok){
     // ほめるのは「頭のよさ」ではなく、やり方やがんばり
-    const praise = q.type === 'recall' ? '自分の力で思い出せたね'
+    const praise = q.again ? '間をあけて、もう一度できたね'
+      : q.review ? '前にまちがえた問題を思い出せたね'
+      : q.type === 'recall' ? '自分の力で思い出せたね'
       : q.type === 'write' ? '思い出しながら書けたね'
       : q.shiryo ? '資料から手がかりを見つけられたね'
       : q.type === 'num' ? pick(['式を立てて計算できたね', 'たんいまで気をつけられたね', 'その調子で続けよう'])
@@ -1829,6 +2038,10 @@ function nextQuestion(){
 /* ---- 結果画面 ---- */
 // 点数だけでなく、つぎに何をすれば伸びるかを伝える
 function resultMessage(right, n){
+  if (state.mode === 'review'){
+    if (right === n) return '復習、ぜんぶ正解！ 日をあけて思い出せたことが、いちばん記憶に残ります。あと数回くり返すと、この問題は卒業です。';
+    return '復習おつかれさま。思い出せなかった問題は、また あした 出ます。今できなくても、くり返すうちに必ず出てくるようになります。';
+  }
   if (right === n) return 'ぜんぶ正解！ 何日かあけて「まぜこぜ」でもう一度ためすと、さらに忘れにくくなります。';
   if (right / n >= 0.7) return 'よくできました。まちがえた問題は、とき方を読んだあとにもう一度解くと、いちばん記憶に残ります。';
   return 'まちがえた問題こそ、のびるチャンス。とき方を1行ずつ読んでから、もう一度ちょうせんしよう。';
@@ -1856,16 +2069,21 @@ function screenResult(){
           <div class="row-ex">${stepsHTML(r.q)}</div>
         </details>`).join('')}
     </div>
+    ${boxStateHTML(state.grad)}
     <div class="acts">
-      ${wrong.length ? '<button id="again-wrong">まちがえた問題をもう一度</button>' : ''}
-      <button id="again" class="${wrong.length ? 'ghost' : ''}">同じ分野でもう一度</button>
+      ${wrong.length ? '<button id="again-wrong">まちがえた問題を、別の問題でもう一度</button>' : ''}
+      ${dueKeys().length ? `<button id="go-review" class="${wrong.length ? 'ghost' : ''}">今日の復習のつづき（${dueKeys().length}問）</button>` : ''}
+      ${state.mode === 'review' ? '' : `<button id="again" class="${wrong.length || dueKeys().length ? 'ghost' : ''}">同じ分野でもう一度</button>`}
       <button id="home" class="ghost">分野をえらびなおす</button>
     </div>`;
 
   const w = document.getElementById('again-wrong');
-  // もう一度のときは、選択肢の順番をかえる（位置で覚えてしまわないように）
-  if (w) w.onclick = () => startQuiz(wrong.map(r => r.q.choices ? { ...r.q, choices: shuffle(r.q.choices) } : r.q));
-  document.getElementById('again').onclick = () => startQuiz(makeQuestions(state.unit, state.total));
+  // もう一度のときも、同じきまりから作った新しい問題にする（問題文ごと覚えてしまわないように）
+  if (w) w.onclick = () => startQuiz(wrong.map(r => regenFor(r.q.item) || (r.q.choices ? { ...r.q, choices: shuffle(r.q.choices) } : r.q)));
+  const rv = document.getElementById('go-review');
+  if (rv) rv.onclick = () => { state.unit = 'review'; startQuiz(makeReviewQuestions(state.total), 'review'); };
+  const ag = document.getElementById('again');
+  if (ag) ag.onclick = () => startQuiz(makeQuestions(state.unit, state.total));
   document.getElementById('home').onclick = screenHome;
 }
 
