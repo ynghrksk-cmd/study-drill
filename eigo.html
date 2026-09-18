@@ -1348,6 +1348,39 @@ const PASSAGES = [
         why:'<b>can は「〜できる」</b>。I <b>can speak</b> English and <b>a little</b> Japanese（少しの日本語）。' },
       { q:'エマが春にしたいことは何ですか。', a:'京都を訪れること', x:['日本語を習うこと', '日本の学校へ行くこと', '手紙を書くこと'],
         why:'<b>want to 〜 は「〜したい」</b>。I want to <b>visit Kyoto</b> <b>in spring</b>（春に京都を訪れたい）。' }
+    ] },
+  { title:'Our Class Trip',
+    body:['Last week our class went to the zoo. We took a bus from school. It was rainy in the morning, but the sun came out at noon.',
+          'I saw a big elephant. My friend Aya liked the pandas. We ate lunch under a tree. I want to go there again.'],
+    qs:[
+      { q:'クラスはどうやって動物園へ行きましたか。', a:'バスで', x:['電車で', '歩いて', '自転車で'],
+        why:'<b>took a bus は take a bus（バスに乗る）の過去形</b>。We <b>took a bus</b> from school. とあります。' },
+      { q:'その日の天気について、文に合うものはどれですか。', a:'朝は雨だったが、昼には晴れた', x:['一日中雨だった', '朝から晴れていた', '昼から雨になった'],
+        why:'<b>but（しかし）の前と後ろを読みくらべます</b>。It was rainy in the morning, <b>but</b> the sun came out at noon（昼に日が出た）。' },
+      { q:'アヤが気に入った動物は何ですか。', a:'パンダ', x:['ゾウ', 'ライオン', 'サル'],
+        why:'<b>だれが、を先に見つけます</b>。I saw a big elephant（ゾウを見たのは「私」）。<b>My friend Aya</b> liked the <b>pandas</b>。' }
+    ] },
+  { title:'Rainy Saturday',
+    body:["It was rainy last Saturday, so I did not play soccer. I stayed home and read a book about space.",
+          'In the afternoon, my grandmother came to my house. She brought some apples. We made an apple pie together. It was fun.'],
+    qs:[
+      { q:'「私」が土曜日にサッカーをしなかったのは、なぜですか。', a:'雨だったから', x:['本を読みたかったから', '祖母が来たから', '具合が悪かったから'],
+        why:'<b>so は「だから」。so の前に理由があります</b>。It was rainy last Saturday, <b>so</b> I did not play soccer。' },
+      { q:'「私」が家で読んだ本は、何についての本ですか。', a:'宇宙', x:['動物', '料理', 'スポーツ'],
+        why:'<b>about 〜 は「〜について」</b>。read a book <b>about space</b>（宇宙についての本）。' },
+      { q:'午後にしたことは何ですか。', a:'祖母といっしょにアップルパイを作った', x:['祖母とりんごを買いに行った', '一人でアップルパイを作った', '祖母の家へ行った'],
+        why:'<b>together は「いっしょに」</b>。<b>We</b> made an apple pie <b>together</b>。祖母が来たので、行ったのではありません。' }
+    ] },
+  { title:'The New Student',
+    body:["A new student came to our class today. His name is Leo. He is from Canada.",
+          "He does not speak Japanese well, but he speaks English and French. He plays the drums in a band. He practices every Sunday."],
+    qs:[
+      { q:'レオはどこの国から来ましたか。', a:'カナダ', x:['アメリカ', 'フランス', 'オーストラリア'],
+        why:'<b>be from 〜 は「〜の出身」</b>。He is <b>from Canada</b>. フランス語を話しますが、出身国ではありません。' },
+      { q:'レオが話せることばは何ですか。', a:'英語とフランス語', x:['日本語と英語', 'フランス語だけ', '英語と日本語とフランス語'],
+        why:'<b>but の前は「できないこと」、あとは「できること」</b>。does not speak Japanese well, <b>but</b> he speaks <b>English and French</b>。' },
+      { q:'レオはいつドラムを練習しますか。', a:'毎週日曜日', x:['毎日', '毎週土曜日', '放課後'],
+        why:'<b>every 〜 は「毎〜」</b>。He practices <b>every Sunday</b>（毎週日曜日）。曜日を表す語をさがすのがこつです。' }
     ] }
 ];
 function readingQuestion(p, qi){
@@ -1530,9 +1563,9 @@ const DIALOG = [
   { lines:['A: Excuse me. Where is the library?', 'B: Go straight and turn right at the bank.', 'A: ( )'],
     a:'Thank you very much.', x:['I\'m sorry.', 'Yes, I do.', 'See you tomorrow.'],
     j:'道を教えてもらったあとの言葉。', why:'道を教えてもらった場面なので、<b>お礼</b>を言う流れです。' },
-  { lines:['A: What do you do on Sundays?', 'B: I usually play the guitar.', 'A: ( )', 'B: For two years.'],
-    a:'How long have you played it?', x:['How much is it?', 'Where do you play it?', 'What time is it now?'],
-    j:'あとの答えは「2年間です」。', why:'<b>答えの文が手がかり</b>。「For two years（2年間）」と答えているので、<b>期間</b>をたずねる質問が入ります。' },
+  { lines:['A: What do you do on Sundays?', 'B: I usually play the guitar.', 'A: ( )', 'B: Two years ago.'],
+    a:'When did you start it?', x:['How much is it?', 'Where do you play it?', 'What time is it now?'],
+    j:'あとの答えは「2年前です」。', why:'<b>答えの文が手がかり</b>。「Two years ago（2年前）」と答えているので、<b>いつ</b>をたずねる質問が入ります。値段・場所・時こくではありません。' },
   { lines:['A: Can you help me, Yumi?', 'B: Sure. What\'s the problem?', 'A: ( )'],
     a:'I can\'t open this box.', x:['You are welcome.', 'I\'m fine, thank you.', 'It\'s Tuesday today.'],
     j:'「どうしたの？」への答え。', why:'「What\'s the problem?（どうしたの）」と聞かれているので、<b>こまっている内容</b>を答えます。' },
@@ -1541,7 +1574,49 @@ const DIALOG = [
     j:'あとで A が「日曜はどう？」と言っている。', why:'<b>あとの文まで読む</b>のがこつ。A が別の日を提案しているので、B は土曜の<b>ことわり</b>を言ったとわかります。' },
   { lines:['A: Whose notebook is this?', 'B: ( ) She was looking for it.', 'A: OK, I\'ll give it to her.'],
     a:'It\'s Emma\'s.', x:['It\'s mine.', 'Yes, it is.', 'I don\'t have one.'],
-    j:'あとの文に She が出てくる。', why:'つぎの文の <b>She（彼女）</b>が手がかり。持ち主は女の人だとわかるので、Emma のものだと答えている文が入ります。' }
+    j:'あとの文に She が出てくる。', why:'つぎの文の <b>She（彼女）</b>が手がかり。持ち主は女の人だとわかるので、Emma のものだと答えている文が入ります。' },
+  { lines:['A: How was the movie?', 'B: ( ) I want to see it again.', 'A: Really? Let\'s go together next time.'],
+    a:'It was very good.', x:['I\'m fifteen years old.', 'It\'s on the desk.', 'No, I don\'t.'],
+    j:'あとで「もう一度見たい」と言っている。', why:'<b>あとの文が手がかり</b>。「もう一度見たい」と言っているので、<b>よい感想</b>が入ります。How was 〜? には was を使って答えます。' },
+  { lines:['A: ( )', 'B: I\'m looking for my key. I can\'t find it.', 'A: Is this yours?'],
+    a:'What are you doing?', x:['How old are you?', 'Where are you from?', 'What time do you get up?'],
+    j:'B は「かぎをさがしている」と答えている。', why:'<b>答えが進行形（〜ing）なら、質問も進行形</b>。「What are you doing?（何をしているの）」に「I\'m looking for 〜」と答えています。' },
+  { lines:['A: Do you want some tea?', 'B: ( )', 'A: Here you are.'],
+    a:'Yes, please.', x:['Yes, I can.', 'No, thank you.', 'You\'re welcome.'],
+    j:'あとで A が「はい、どうぞ」とわたしている。', why:'<b>あとの Here you are.（はい、どうぞ）がかぎ</b>。わたしているので、B は<b>もらう返事</b>をしています。No, thank you. だとわたしません。' },
+  { lines:['A: Excuse me. How much is this cap?', 'B: ( )', 'A: OK, I\'ll take it.'],
+    a:'It\'s twelve dollars.', x:['It\'s twelve o\'clock.', 'It\'s Monday.', 'It\'s very old.'],
+    j:'値段をたずねている。', why:'<b>How much は「いくら」</b>。ねだんを答えます。o\'clock は時こく、Monday は曜日で、どちらも答えになりません。' },
+  { lines:['A: You speak English very well.', 'B: ( )', 'A: Do you study it every day?'],
+    a:'Thank you.', x:['I\'m sorry.', 'Here you are.', 'Nice to meet you.'],
+    j:'ほめられたときの返事。', why:'<b>ほめられたら Thank you.</b>。あやまる場面でも、ものをわたす場面でも、はじめて会った場面でもありません。' },
+  { lines:['A: Where is my bag?', 'B: ( )', 'A: Oh, thank you. I didn\'t see it.'],
+    a:'It\'s under the table.', x:['It\'s five o\'clock.', 'It\'s mine.', 'Yes, it is.'],
+    j:'場所をたずねている。', why:'<b>Where には「場所」で答えます</b>。under the table（テーブルの下）が場所を表しています。' },
+  { lines:['A: Can I use your eraser?', 'B: ( )', 'A: Thanks. I\'ll give it back soon.'],
+    a:'Sure. Here you are.', x:['Yes, I can.', 'No, I\'m not.', 'It\'s a pen.'],
+    j:'「使ってもいい？」への返事。', why:'<b>Can I 〜? は「〜してもいいですか」</b>。ゆるすときは Sure.。Yes, I can. は「私はできる」という意味になり、答えになりません。' },
+  { lines:['A: What time do you usually get up?', 'B: ( )', 'A: That\'s early!'],
+    a:'At six thirty.', x:['For two hours.', 'On Sunday.', 'In Tokyo.'],
+    j:'あとで A が「早いね」と言っている。', why:'<b>What time には「時こく」で答えます</b>。時こくには at を使います。for は期間、on は曜日、in は場所です。' },
+  { lines:['A: I lost my umbrella yesterday.', 'B: ( )', 'A: Thank you. I hope so.'],
+    a:'That\'s too bad. I hope you find it.', x:['Congratulations!', 'You\'re welcome.', 'Nice to meet you.'],
+    j:'かさをなくした相手への言葉。', why:'<b>相手にこまったことが起きたときは、気づかう言い方</b>を選びます。Congratulations!（おめでとう）は、よいことがあったときに使います。' },
+  { lines:['A: ( )', 'B: Yes. I have two brothers and one sister.', 'A: Wow, you have a big family.'],
+    a:'Do you have any brothers or sisters?', x:['Are you a student?', 'Where do you live?', 'What do you do after school?'],
+    j:'B は兄弟の人数を答えている。', why:'<b>答えを見てから質問を選びます</b>。兄弟姉妹の人数を答えているので、それをたずねる質問が入ります。Yes で答えているので、疑問詞で始まる質問は入りません。' },
+  { lines:['A: Let\'s play tennis after school.', 'B: ( ) I have a piano lesson today.', 'A: OK. How about tomorrow?'],
+    a:'Sorry, I can\'t.', x:['Yes, let\'s.', 'You\'re welcome.', 'That\'s right.'],
+    j:'あとで「今日はピアノのレッスンがある」と言っている。', why:'<b>( ) のあとの理由に注目</b>。レッスンがあるので、さそいを<b>ことわる</b>言い方が入ります。Yes, let\'s. だと話がつながりません。' },
+  { lines:['A: Whose racket is this?', 'B: ( ) He plays tennis every day.', 'A: I see.'],
+    a:'It\'s Ken\'s.', x:['It\'s hers.', 'Yes, it is.', 'I like tennis.'],
+    j:'あとの文に He が出てくる。', why:'<b>つぎの文の He（彼）が手がかり</b>。持ち主は男の人なので、hers（彼女のもの）は合いません。' },
+  { lines:['A: Is your sister studying now?', 'B: ( ) She is sleeping in her room.', 'A: OK, I\'ll call her later.'],
+    a:'No, she isn\'t.', x:['Yes, she is.', 'No, she doesn\'t.', 'Yes, I am.'],
+    j:'あとで「部屋でねている」と言っている。', why:'<b>進行形の疑問文には、be動詞で答えます</b>。ねているので No。doesn\'t ではなく isn\'t を使い、主語も she にそろえます。' },
+  { lines:['A: What did you do last weekend?', 'B: ( )', 'A: That sounds fun.'],
+    a:'I went to the river with my father.', x:['I go to the river every day.', 'I will go to the river.', 'I like the river.'],
+    j:'last weekend（先週末）のことを聞いている。', why:'<b>did でたずねられたら、過去形で答えます</b>。go（現在）ではなく <b>went</b>（過去）を使います。' }
 ];
 function advDialog(){
   const d = pick(DIALOG);
@@ -1594,6 +1669,66 @@ const PASSAGES_ADV = [
         why:'<b>doesn\'t have（持っていない）＝ ない</b>。My town <b>doesn\'t have</b> a big shopping mall. とあります。' },
       { q:'「私」は自分の町について、どう思っていますか。', a:'大きくはないが、とても気に入っている', x:['退屈なので、引っこしたい', '友達と同じで、つまらないと思う', '川があぶないので心配だ'],
         why:'<b>but（しかし）のあとに、筆者の本当の気持ち</b>が出てきます。「not big, <b>but</b> I like it very much」「friends say it is boring, <b>but</b> I don\'t think so」の2か所が手がかりです。' }
+    ] },
+  { title:'The School Festival',
+    body:["Our school festival was last Friday. My class made a small restaurant. We cooked curry and rice for the visitors.",
+          "I got up at five that morning and cut a lot of vegetables with my mother. I was very sleepy, but I did not tell my friends about it.",
+          "We made eighty plates, but we sold ninety. We cooked ten plates again. Our teacher said, \"You worked very hard.\" I was tired, but I was happy."],
+    qs:[
+      { q:'「私」のクラスは、文化祭で何をしましたか。', a:'カレーライスを出す店を開いた', x:['野菜を売る店を開いた', '劇（げき）をした', '教室をそうじした'],
+        why:'<b>made a small restaurant（小さな店を作った）</b>と、<b>cooked curry and rice</b> の2つを合わせて考えます。野菜は売ったのではなく、朝に切ったものです。' },
+      { q:'「私」が当日の朝5時に起きたのは、なぜですか。', a:'母と野菜をたくさん切るため', x:['学校へ早く行くため', '友達を手伝うため', 'カレーを売るため'],
+        why:'<b>and でつながれた、すぐあとの動作</b>を見ます。I got up at five <b>and cut a lot of vegetables with my mother</b>。' },
+      { q:'売れたカレーの数について、文に合うものはどれですか。', a:'用意した数より多く売れたので、作りたした', x:['用意した数だけ売れて、ちょうど終わった', '用意した数より少なく、あまった', '一皿も売れなかった'],
+        why:'<b>数をならべて読みくらべます</b>。made <b>eighty</b> plates（80皿作った）、sold <b>ninety</b>（90皿売れた）、cooked <b>ten</b> plates again（10皿作りたした）。' }
+    ] },
+  { title:'My Grandfather\'s Garden',
+    body:["My grandfather has a small garden behind his house. He grows tomatoes, carrots and flowers there. He works in it every morning.",
+          "Last summer I stayed at his house for a week. He said, \"This part of the garden is yours.\" I planted tomato seeds there and watered them every day.",
+          "Nothing happened for ten days, and I almost stopped. Then one morning I found two small green leaves. My grandfather said, \"Plants are slow, but they never stop.\" I still remember his words."],
+    qs:[
+      { q:'祖父が庭でしていることは何ですか。', a:'毎朝、野菜や花を育てている', x:['週に一度、花だけを育てている', '夏だけ野菜を育てている', '庭を「私」にゆずった'],
+        why:'<b>grow は「育てる」、every morning は「毎朝」</b>。tomatoes, carrots and flowers（野菜と花）を育てています。庭全部ではなく、a small space をくれただけです。' },
+      { q:'「私」が「ほとんどあきらめかけた」のは、なぜですか。', a:'10日間、何も起こらなかったから', x:['水やりがたいへんだったから', '祖父にしかられたから', '家に帰る日が来たから'],
+        why:'<b>and の前に理由があります</b>。Nothing happened for <b>ten days</b>, and I almost stopped（何も起きず、やめかけた）。' },
+      { q:'祖父のことばから読みとれる考えはどれですか。', a:'進み方はおそくても、続けていれば必ず前に進む', x:['植物を育てるのはむずかしい', '早く育つ植物を選ぶべきだ', '毎日水をやってはいけない'],
+        why:'<b>but の前と後ろで意味がひっくり返ります</b>。Plants are <b>slow</b>, <b>but</b> they <b>never stop</b>（おそいが、決して止まらない）。' }
+    ] },
+  { title:'A Letter to Mika',
+    body:["Dear Mika, how are you? I am writing this letter in my room. It is snowing outside.",
+          "I moved to Sapporo in March. My new school is very big. I was nervous on the first day, but a girl talked to me. Her name is Aya. Now we eat lunch together every day.",
+          "I still miss you. Can you come here in summer? We can go to the sea by bike. Please write back soon. Your friend, Nana"],
+    qs:[
+      { q:'この手紙を書いているのはだれですか。', a:'ナナ', x:['ミカ', 'アヤ', '先生'],
+        why:'<b>手紙は、はじめの Dear 〜 が相手、終わりの名前が書いた人</b>です。Dear Mika（ミカへ）で始まり、Your friend, <b>Nana</b> で終わっています。' },
+      { q:'ナナが初日に緊張しなくなったのは、なぜですか。', a:'アヤという女の子が話しかけてくれたから', x:['前の学校の友達が来てくれたから', '学校がとても大きかったから', '先生が日本語で話してくれたから'],
+        why:'<b>but のあとに、気持ちが変わったきっかけ</b>が書かれます。I was nervous, <b>but</b> a girl talked to me. Her name is Aya。' },
+      { q:'ナナがミカにたのんでいることは何ですか。', a:'夏にこちらへ来てほしい', x:['いっしょに海へ行ってほしい', '自転車を送ってほしい', '新しい学校を教えてほしい'],
+        why:'<b>Can you 〜? は「〜してくれませんか」というおねがい</b>。<b>Can you come here in summer?</b> がたのんでいる内容です。海へ行くのは、来たあとの話です。' }
+    ] },
+  { title:'Winter Camp',
+    body:["Last winter I joined a three-day camp in the mountains. Twenty students came from many schools. I did not know anyone there.",
+          "On the first night, it was very cold. I did not sleep well. A boy in my room, Taku, was awake, too. We talked about our favorite books until midnight.",
+          "On the last day, we walked to the top of a small hill together. The town looked very small from there. Taku lives far away, but we still write e-mails to each other."],
+    qs:[
+      { q:'キャンプに来た生徒について、文に合うものはどれですか。', a:'いろいろな学校から20人が来た', x:['同じ学校から20人が来た', '「私」の友達が多く来た', '生徒は3人だけだった'],
+        why:'<b>数と from に注目</b>。<b>Twenty students</b> came <b>from many schools</b>（多くの学校から20人）。three-day は日数で、人数ではありません。' },
+      { q:'「私」がタクと話すようになったきっかけは何ですか。', a:'寒くてよくねむれず、タクも起きていたから', x:['同じ学校の生徒だったから', '先生にしょうかいされたから', '好きな本が同じだったから'],
+        why:'<b>きっかけは、そのすぐ前の文</b>にあります。I did not sleep well（よくねむれなかった）→ Taku <b>was awake, too</b>（タクも起きていた）。' },
+      { q:'キャンプのあと、二人はどうしていますか。', a:'遠くはなれているが、メールのやりとりを続けている', x:['同じ学校に通っている', '毎週会って本を交かんしている', '連らくを取っていない'],
+        why:'<b>but のあとに、いちばん言いたいことが来ます</b>。Taku lives far away, <b>but</b> we <b>still write e-mails</b> to each other（今もメールを書いている）。' }
+    ] },
+  { title:'The Lost Cat',
+    body:["One evening my sister came home alone. Her cat, Mimi, did not come back with her. My sister cried a lot.",
+          "My father and I looked for Mimi in the park and near the river. We called her name many times, but we did not find her. It got dark, so we went home.",
+          "The next morning I heard a small sound under the car. Mimi was there. She was dirty and hungry, but she was fine. Now my sister keeps Mimi in the house at night."],
+    qs:[
+      { q:'父と「私」がミミをさがした場所はどこですか。', a:'公園と川の近く', x:['家の中と庭', '学校と駅', '車の下だけ'],
+        why:'<b>場所を表す前置詞（in, near, under）をさがします</b>。looked for Mimi <b>in the park</b> and <b>near the river</b>。車の下は、次の日に見つけた場所です。' },
+      { q:'その日、さがすのをやめたのはなぜですか。', a:'暗くなったから', x:['ミミが見つかったから', '姉が泣きやんだから', '雨がふってきたから'],
+        why:'<b>so は「だから」。so の前が理由</b>です。It got dark, <b>so</b> we went home（暗くなったので家に帰った）。' },
+      { q:'この出来事のあと、姉が変えたことは何ですか。', a:'夜はミミを家の中に入れておくようになった', x:['ミミを飼うのをやめた', '毎晩、公園をさがすようになった', '車の下を毎日見るようになった'],
+        why:'<b>Now（今は）で始まる文は、変わったあとのことを表します</b>。Now my sister <b>keeps Mimi in the house at night</b>（夜は家の中に入れている）。' }
     ] }
 ];
 function advReadingLong(){
@@ -1668,8 +1803,11 @@ function makeQuestions(unitId, n, lv){
     guard++;
     const u = pick(units);
     const q = useAdv(lv, u) ? makeAdv(u) : genEigo(u);
-    const key = q.type + q.text.replace(/<[^>]*>/g, '');
-    if (seen.has(key)) continue;   // 同じ問題が重ならないように
+    // 同じ問題が重ならないように。もとになる項目（item）がちがえば、
+    // 文言が同じでも別の問題として出す（文章題の「【ア】に入ることばは」など）。
+    // タグは消さない（下線の位置だけがちがう問題を、同じとみなさないため）。
+    const key = (q.type || '') + '|' + (q.item || '') + '|' + q.text;
+    if (seen.has(key)) continue;
     seen.add(key);
     list.push(q);
   }

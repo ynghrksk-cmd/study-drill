@@ -1060,8 +1060,11 @@ function makeQuestions(unitId, n, lv){
     guard++;
     const u = pick(units);
     const q = useAdv(lv, u) ? makeAdv(u) : genScience(u);
-    const key = q.text.replace(/<[^>]*>/g, '');
-    if (seen.has(key)) continue;   // 同じ問題が重ならないように
+    // 同じ問題が重ならないように。もとになる項目（item）がちがえば、
+    // 文言が同じでも別の問題として出す（文章題の「【ア】に入ることばは」など）。
+    // タグは消さない（下線の位置だけがちがう問題を、同じとみなさないため）。
+    const key = (q.type || '') + '|' + (q.item || '') + '|' + q.text;
+    if (seen.has(key)) continue;
     seen.add(key);
     list.push(q);
   }
