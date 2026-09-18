@@ -31,6 +31,8 @@
     --ng-soft:#FAEBDC;
     --mark:#FFE27A;      /* 大事なきまり */
     --focus:#2463A8;
+    --l3:#7FA9D6;        /* 習得マップ「できている」 */
+    --l5:#2463A8;        /* 習得マップ「身についた」 */
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   [hidden]{display:none!important;}
@@ -376,6 +378,71 @@
   @media (min-width:700px){
     .tag-adv{font-size:.82rem;}
     .lv-note{font-size:.95rem;}
+  }
+
+  /* ---- ランク・今日のメニュー・習得マップ（5つのアプリで共通）---- */
+  .rank{
+    display:flex;align-items:center;gap:13px;margin:0 0 13px;padding:13px 15px;
+    border-radius:14px;background:var(--surface);border:1px solid var(--line);
+  }
+  .rank-no{
+    width:38px;height:38px;flex:none;border-radius:11px;background:var(--ok);color:#fff;
+    display:grid;place-items:center;font-size:1.15rem;font-weight:700;
+  }
+  .rank-body{flex:1;min-width:0;}
+  .rank-body>b{display:block;font-size:1.02rem;font-weight:700;color:var(--ink);}
+  .rank-body>b i{font-style:normal;font-weight:400;font-size:.76rem;color:var(--ink-2);margin-left:7px;}
+  .rank-bar{display:block;height:7px;margin:7px 0 5px;border-radius:999px;background:var(--surface-2);overflow:hidden;}
+  .rank-bar u{display:block;height:100%;background:var(--ok);text-decoration:none;}
+  .rank-body>i{display:block;font-style:normal;font-size:.78rem;color:var(--ink-2);line-height:1.6;}
+  .rankup{
+    margin:0 0 14px;padding:13px 16px;border-radius:14px;background:var(--mark);
+    color:var(--ink);line-height:1.7;
+  }
+  .rankup b{display:block;font-size:.84rem;}
+  .rankup span{display:block;font-size:1.12rem;font-weight:700;}
+  .rankup i{display:block;font-style:normal;font-size:.8rem;margin-top:3px;}
+
+  .pick-h{margin:0 0 8px;font-size:.86rem;font-weight:700;color:var(--ink-2);}
+  .picks{display:flex;flex-direction:column;gap:9px;margin:0 0 14px;}
+  .pick{
+    width:100%;padding:14px 16px;border-radius:14px;text-align:left;
+    background:var(--surface);border:1px solid var(--line);color:var(--ink);
+    display:flex;align-items:center;gap:13px;
+  }
+  .pick:first-child{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .pick:active{opacity:.85;}
+  .pick .mark{
+    width:38px;height:38px;flex:none;border-radius:10px;background:var(--surface-2);
+    display:grid;place-items:center;font-size:1.1rem;font-weight:700;color:var(--ink-2);
+  }
+  .pick:first-child .mark{background:rgba(255,255,255,.18);color:#fff;}
+  .pick b{display:block;font-size:1rem;font-weight:700;}
+  .pick i{display:block;font-style:normal;font-size:.78rem;opacity:.85;margin-top:3px;line-height:1.5;}
+
+  .map{margin:14px 0 0;border-radius:12px;background:var(--surface);border:1px solid var(--line);}
+  .map>summary{padding:11px 14px;font-size:.84rem;font-weight:700;color:var(--ink-2);cursor:pointer;}
+  .map-body{padding:0 14px 12px;}
+  .map-row{display:flex;align-items:flex-start;gap:10px;margin:0 0 8px;}
+  .map-name{flex:none;width:7.2em;font-size:.76rem;color:var(--ink-2);line-height:1.5;}
+  .map-dots{display:flex;flex-wrap:wrap;gap:3px;}
+  .map-dots i,.map-key i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none;}
+  .map-dots i.hit{outline:2px solid var(--ink);outline-offset:1px;}
+  .s-grad{background:var(--l5);}
+  .s-ok{background:var(--l3);}
+  .s-review{background:var(--ng);}
+  .s-rest{background:var(--line);}
+  .map-key{display:flex;flex-wrap:wrap;gap:11px;padding-top:8px;border-top:1px solid var(--line);font-size:.75rem;color:var(--ink-2);}
+  .map-key span{display:flex;align-items:center;gap:4px;}
+  .map-note{margin:9px 0 0;font-size:.75rem;color:var(--ink-2);line-height:1.7;}
+  @media (min-width:700px){
+    .rank-no{width:44px;height:44px;font-size:1.3rem;}
+    .rank-body>b{font-size:1.18rem;}
+    .rank-body>b i,.rank-body>i,.rankup i{font-size:.9rem;}
+    .pick b{font-size:1.14rem;}
+    .pick i,.pick-h{font-size:.9rem;}
+    .map>summary,.map-name,.map-key,.map-note{font-size:.9rem;}
+    .map-dots i,.map-key i{width:12px;height:12px;}
   }
 </style>
 </head>
@@ -1064,7 +1131,11 @@ const ADV_LABEL = {
    答えが必ず整数になるきまりは、おうよう でも変わらない。 */
 const LEVEL_KEY = 'study-drill-level';   // 5教科で共通（教科をまたいでも同じレベルで始められる）
 function getLevel(){
-  try { return localStorage.getItem(LEVEL_KEY) === 'adv' ? 'adv' : 'basic'; } catch (e) { return 'basic'; }
+  // なにも えらんでいないときは「じどう」。じどうは、分野ごとに ちょうどよい難しさに合わせる
+  try {
+    const v = localStorage.getItem(LEVEL_KEY);
+    return (v === 'adv' || v === 'basic') ? v : 'auto';
+  } catch (e) { return 'auto'; }
 }
 function setLevel(v){ try { localStorage.setItem(LEVEL_KEY, v); } catch (e) {} }
 // 応用の問題を1つ作って、項目（item）と名前（label）をつける
@@ -1139,7 +1210,8 @@ function makeQuestions(unitId, n, lv){
   let guard = 0;
   while (list.length < n && guard < n * 40){
     guard++;
-    const q = lv === 'adv' ? makeAdv(pick(units)) : makeOne(pick(units));
+    const u = pick(units);
+    const q = useAdv(lv, u.id) ? makeAdv(u) : makeOne(u);
     if (seen.has(q.text)) continue;   // 同じ式が続かないように
     seen.add(q.text);
     list.push(q);
@@ -1233,17 +1305,6 @@ function makeReviewQuestions(n){
   }
   return list;
 }
-// トップ画面のいちばん上に出す「今日の復習」
-function reviewHomeHTML(){
-  const n = dueKeys().length, next = nextDueDay();
-  if (n) return `
-    <button class="review-btn" id="go-review">
-      <span class="mark">⟳</span>
-      <span><b>今日の復習　${n}問</b><i>まちがえた問題を、わすれたころに出しています。同じきまりの新しい問題です。</i></span>
-    </button>`;
-  if (next !== null) return `<p class="review-none">今日の復習はおわりました。<i>つぎの復習は ${dayText(next)}（${boxSize()}問）。それまでは、新しい問題にちょうせんしよう。</i></p>`;
-  return '';
-}
 // 結果画面に出す、復習ボックスのようす
 function boxStateHTML(grad){
   const next = nextDueDay(), n = boxSize();
@@ -1285,6 +1346,9 @@ function getLog(){
   if (!Array.isArray(log.ses)) log.ses = [];    // 1回ごと：[日, 分野, 復習か, 出題数, 正解数, 秒]
   if (!log.item || typeof log.item !== 'object') log.item = {};   // 項目ごと：[出題数, 正解数, まちがい, 最後の日, 卒業した日, 分野]
   if (!log.label || typeof log.label !== 'object') log.label = {};
+  if (!log.day || typeof log.day !== 'object') log.day = {};    // 項目ごと：別々の日に正解した回数（ランクに使う。送信はしない）
+  if (!log.rec || typeof log.rec !== 'object') log.rec = {};    // 分野ごと：直近20問の正誤（じどうレベルに使う。送信はしない）
+  if (!log.up || typeof log.up !== 'object') log.up = {};       // じどうで「おうよう」に上がったことを知らせた分野
   log.v = LOG_VER;
   log.total = ALL_ITEMS.length;                 // この教科の項目の総数（進み具合の分母）
   return log;
@@ -1296,8 +1360,11 @@ function logQuestion(q, ok, grad){
   if (!q.item) return;
   const L = getLog(), t = today();
   const r = L.item[q.item] || (L.item[q.item] = [0, 0, 0, 0, 0, '']);
+  // 「別々の日に正解した回数」は、その日の1回目だけ数える（同じ日にくり返しても増やさない）
+  const firstToday = r[3] !== t, base = okDays(q.item);
   r[0]++;
   if (ok) r[1]++; else r[2]++;
+  if (ok && firstToday) L.day[q.item] = base + 1;
   r[3] = t;
   if (grad) r[4] = t;
   r[5] = q.unit || r[5] || '';
@@ -1675,7 +1742,242 @@ function createInk(wrap, opt){
    4. 画面の状態
    ============================================================ */
 const app = document.getElementById('app');
-const state = { unit:null, mode:'normal', level:getLevel(), total:10, qs:[], i:0, input:'', read:null, locked:false, results:[], t0:0, retried:new Set(), grad:0 };
+/* ============================================================
+   1-4. 習得ポイントとランク（5つのアプリで共通。どれかを直したら、ほかの4つにも同じ修正を入れる）
+      「レベルが上がる」しくみは、点数やコインのごほうびにはしない。
+      外からのごほうびをつけると、もともとあったやる気のほうが弱くなってしまうため。
+      そこでランクは、<b>いまの力をうつす鏡</b>にする。元にするのは、
+        ・卒業した項目（間をあけて5回思い出せた）
+        ・復習ボックスの進みぐあい（日をあけて思い出せた回数）
+        ・まちがえずに、別々の日に正解できた回数
+      の3つ。どれも<b>同じ日にくり返しても増えない</b>ので、たくさん解くだけでは上がらない。
+      ランクはいちど上がったら下がらない（下がると、むずかしい問題をさけるようになるため）。
+   ============================================================ */
+const MP_MAX = 5;                                                 // 項目1つの満点
+const RANK_AT = [0, .015, .05, .11, .20, .32, .46, .62, .82];     // 満点にたいする割合（はじめは細かく、あとはゆっくり）
+const RANK_KEY = 'study-drill-rank';                              // 到達した最高ランク（5教科ぶんをまとめて持つ）
+const RANK_WORLD = '計算の塔';
+const RANKS = ['ふもと', '計算の門', '符号の間', '文字の間', '方程式の間', 'きまりの間', '見はらしの間', '塔のてっぺん', '数の賢者'];
+const RANK_SUB = ['', '', '', '', '', '', '', '', ''];
+
+function escAttr(s){ return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]); }
+function labelOf(key){ return getLog().label[key] || key; }
+
+// 「別々の日に正解した回数」。古い記録には入っていないので、そのときは正解数（多くても3）で見なす
+function okDays(key){
+  const L = getLog();
+  if (L.day[key] != null) return L.day[key];
+  const r = L.item[key];
+  return r ? Math.min(r[1], 3) : 0;
+}
+// 項目1つの習得ポイント（0〜5）
+function mpOf(key){
+  const r = getLog().item[key];
+  if (!r) return 0;                                 // まだ出ていない
+  if (r[4] > 0) return MP_MAX;                      // 卒業した
+  const b = getBox()[key];
+  if (b) return Math.min(1 + (b.n || 0), 4);        // 復習ボックスの中（日をあけて思い出すほど上がる）
+  return Math.min(okDays(key), MP_MAX);             // まだ一度もまちがえていない
+}
+function mpTotal(){ let s = 0; for (const k of ALL_ITEMS) s += mpOf(k); return s; }
+function mpMax(){ return ALL_ITEMS.length * MP_MAX; }
+// 習得ポイントから、いまのランク（0から数える）
+function rankIndex(mp){
+  const max = mpMax();
+  let i = 0;
+  for (let k = 0; k < RANK_AT.length; k++) if (mp >= RANK_AT[k] * max) i = k;
+  return i;
+}
+function getRanks(){
+  let r = null;
+  try { r = JSON.parse(localStorage.getItem(RANK_KEY)); } catch (e) {}
+  return (r && typeof r === 'object') ? r : {};
+}
+// いまのランク（いちど上がったら下がらない）
+function myRank(){ return Math.max(rankIndex(mpTotal()), getRanks()[SUBJECT] || 0); }
+// ランクが上がったかどうかを見る。上がっていたら { from, to } を返して、覚えておく
+function bumpRank(){
+  const r = getRanks(), before = r[SUBJECT] || 0, now = rankIndex(mpTotal());
+  if (now <= before) return null;
+  r[SUBJECT] = now;
+  try { localStorage.setItem(RANK_KEY, JSON.stringify(r)); } catch (e) {}
+  return { from: before, to: now };
+}
+// つぎのランクまで、あといくつ
+function toNextRank(){
+  const i = myRank();
+  if (i >= RANKS.length - 1) return null;
+  return { need: Math.max(1, Math.ceil(RANK_AT[i + 1] * mpMax()) - mpTotal()), name: RANKS[i + 1] };
+}
+// トップ画面のいちばん上に出すランクの帯
+function rankHTML(){
+  const i = myRank(), mp = mpTotal(), max = mpMax(), nx = toNextRank();
+  const from = RANK_AT[i] * max, to = nx ? RANK_AT[i + 1] * max : max;
+  const pct = Math.max(4, Math.min(100, Math.round((mp - from) / Math.max(1, to - from) * 100)));
+  return `
+    <div class="rank">
+      <span class="rank-no num">${i + 1}</span>
+      <span class="rank-body">
+        <b>${RANKS[i]}${RANK_SUB[i] ? `<i>${RANK_SUB[i]}</i>` : ''}</b>
+        <span class="rank-bar"><u style="width:${pct}%"></u></span>
+        <i>${nx ? `あと ${nx.need} すすむと「${nx.name}」` : RANK_WORLD + 'の いちばん上です'}</i>
+      </span>
+    </div>`;
+}
+// 結果画面に出す、ランクが上がったときの知らせ（上がった理由もそえる）
+function rankUpHTML(up){
+  if (!up) return '';
+  const why = state.grad ? `${state.grad}つの項目が、間をあけて思い出せて身についたからです。`
+    : state.recalled ? `日をあけてから思い出せた問題が ${state.recalled}つ あったからです。`
+    : '一つずつ、たしかめながら進められたからです。';
+  return `
+    <div class="rankup">
+      <b>ランクが上がりました</b>
+      <span>${RANKS[up.from]} → ${RANKS[up.to]}</span>
+      <i>${why}</i>
+    </div>`;
+}
+
+/* ---- 習得マップ（項目1つ＝丸1つ。どこが空いているかが見えると、つぎにやることを自分で決められる）----
+   色の意味は、がんばりの記録・保護者ページと同じにそろえる。
+     身についた＝こい青 ／ できている＝うすい青 ／ 復習中＝オレンジ ／ まだ＝グレー */
+const STATE_NAME = { grad:'身についた', ok:'できている', review:'復習中', rest:'まだ' };
+function itemState(key){
+  const r = getLog().item[key];
+  if (!r) return 'rest';
+  if (r[4] > 0) return 'grad';
+  const b = getBox()[key];
+  if (b && (b.n || 0) <= 1) return 'review';
+  return 'ok';
+}
+function mapHTML(open){
+  const g = {}, cnt = { grad:0, ok:0, review:0, rest:0 };
+  ALL_ITEMS.forEach(k => {
+    const u = unitOfItem(k) || 'other';
+    (g[u] || (g[u] = [])).push(k);
+    cnt[itemState(k)]++;
+  });
+  const rows = UNITS.filter(u => g[u.id]).map(u => [u.id, u.name]);
+  if (g.other) rows.push(['other', 'そのほか']);
+  const done = cnt.grad + cnt.ok + cnt.review;
+  return `
+    <details class="map"${open ? ' open' : ''}>
+      <summary>習得マップ（${ALL_ITEMS.length}この項目のうち、${done}こに手がついています）</summary>
+      <div class="map-body">
+        ${rows.map(r => `
+          <div class="map-row">
+            <span class="map-name">${r[1]}</span>
+            <span class="map-dots">${g[r[0]].map(k => `<i class="s-${itemState(k)}${open && state.touched && state.touched.has(k) ? ' hit' : ''}" title="${escAttr(labelOf(k))}"></i>`).join('')}</span>
+          </div>`).join('')}
+        <div class="map-key">
+          ${Object.keys(STATE_NAME).map(s => `<span><i class="s-${s}"></i>${STATE_NAME[s]} <b class="num">${cnt[s]}</b></span>`).join('')}
+        </div>
+        <p class="map-note">丸ひとつが「きまり」ひとつです。日をあけて思い出せるたびに色がこくなり、5回できると<b>身についた</b>になります。</p>
+      </div>
+    </details>`;
+}
+
+/* ---- 今日のメニュー（3つから自分でえらぶ）----
+   やることを自分で決められると、やらされている感じがへって続きやすい。
+   えらべる形にしつつ、下の分野ボタンもそのまま残す。 */
+function sampleKeys(a, n){
+  const b = a.slice();
+  for (let i = b.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); const t = b[i]; b[i] = b[j]; b[j] = t; }
+  return b.slice(0, n);
+}
+// にがて：まちがえた回数が多い順（今日の復習に出るものは、かさならないように外す）
+function weakKeys(){
+  const L = getLog(), due = new Set(dueKeys()), all = new Set(ALL_ITEMS);
+  return Object.keys(L.item)
+    .filter(k => all.has(k) && !due.has(k) && L.item[k][2] > 0 && !L.item[k][4])
+    .sort((a, b) => L.item[b][2] - L.item[a][2] || L.item[a][3] - L.item[b][3]);
+}
+// まだ一度も出ていない項目
+function freshKeys(){
+  const L = getLog();
+  return ALL_ITEMS.filter(k => !L.item[k]);
+}
+// 項目のキーから問題を作る（作れないものはとばす）
+function makeFromKeys(keys, n){
+  const list = [];
+  for (const k of keys){
+    if (list.length >= n) break;
+    const q = regenFor(k);
+    if (q){ q.item = k; q.label = q.label || labelOf(k); list.push(q); }
+  }
+  return list;
+}
+function menuHTML(){
+  const due = dueKeys().length, weak = weakKeys().length, fresh = freshKeys().length, next = nextDueDay();
+  const card = (id, mark, title, note) =>
+    `<button class="pick" id="${id}"><span class="mark">${mark}</span><span><b>${title}</b><i>${note}</i></span></button>`;
+  let h = '';
+  if (due) h += card('go-review', '⟳', `今日の復習　${Math.min(due, state.total)}問`,
+    'まちがえた問題を、わすれたころに出しています。同じきまりの新しい問題です。');
+  if (weak) h += card('go-weak', '▲', `にがて集中　${Math.min(weak, state.total)}問`,
+    'まちがえた回数が多いものを集めました。あと少しで身につきます。');
+  if (fresh) h += card('go-fresh', '＋', `新しいところ　${Math.min(fresh, state.total)}問`,
+    `まだやっていない ${fresh}この項目から出します。`);
+  if (!h) return '';
+  const none = (!due && next !== null)
+    ? `<p class="review-none">今日の復習はおわりました。<i>つぎの復習は ${dayText(next)}（${boxSize()}問）。</i></p>` : '';
+  return `${none}<p class="pick-h">今日はどれにする？</p><div class="picks">${h}</div>`;
+}
+// トップ画面で、3つのカードにボタンの動きをつける
+function bindMenu(){
+  // 1問も作れなかったときは何もしない（画面がこわれないように）
+  const go = (unit, qs, mode) => { if (qs.length){ state.unit = unit; startQuiz(qs, mode); } };
+  const rv = document.getElementById('go-review');
+  if (rv) rv.onclick = () => go('review', makeReviewQuestions(state.total), 'review');
+  const wk = document.getElementById('go-weak');
+  if (wk) wk.onclick = () => go('weak', makeFromKeys(weakKeys(), state.total), 'review');
+  const fr = document.getElementById('go-fresh');
+  if (fr) fr.onclick = () => go('fresh', makeFromKeys(sampleKeys(freshKeys(), state.total), state.total));
+}
+
+/* ---- じどうレベル（分野ごとに、ちょうどよい difficulty に合わせる）----
+   正解が8〜9わりくらいのときに、学習はいちばん速く進む。
+   そこで直近10問の正答率を見て、おうよう をまぜる割合を決める。
+   上がったときだけ知らせて、下がったときは何も言わない（「下がった」と伝えると自信をけずるため）。 */
+function advRate(unit){
+  const a = getLog().rec[unit] || [];
+  if (a.length < 10) return 0;
+  const last = a.slice(-10), p = last.reduce((x, y) => x + y, 0) / last.length;
+  return p >= .85 ? .7 : p >= .7 ? .3 : 0;
+}
+function useAdv(lv, unit){
+  if (lv === 'adv') return true;
+  if (lv !== 'auto') return false;
+  return Math.random() < advRate(unit);
+}
+// 直近の正誤をためる（じどうレベルの判断だけに使う。送信はしない）
+function pushRec(unit, ok){
+  if (!unit) return;
+  const L = getLog(), a = L.rec[unit] || (L.rec[unit] = []);
+  a.push(ok ? 1 : 0);
+  if (a.length > 20) a.splice(0, a.length - 20);
+  saveLog();
+}
+// じどうで「おうよう」に上がった分野を、はじめの1回だけ知らせる
+function advNewsHTML(){
+  if (state.level !== 'auto') return '';
+  const L = getLog(), news = [];
+  UNITS.forEach(u => {
+    if (!ADV[u.id] || !ADV[u.id].length) return;
+    if (advRate(u.id) >= .7 && !L.up[u.id]){ L.up[u.id] = 1; news.push(u.name); }
+  });
+  if (!news.length) return '';
+  saveLog();
+  return `<p class="lv-note">${news.join('・')} が よくできているので、これからは <b>すこしむずかしい問題</b> を まぜます。</p>`;
+}
+
+// 項目のキーから、その項目がどの分野のものかを知る（習得マップで使う）
+function unitOfItem(key){
+  if (key.slice(0, 2) === 'a:') return ADV_ALL[key.slice(2)] || '';
+  return key.split(':')[0];
+}
+
+const state = { unit:null, mode:'normal', level:getLevel(), total:10, qs:[], i:0, input:'', read:null, locked:false, results:[], t0:0, retried:new Set(), grad:0, touched:new Set(), recalled:0 };
 let workInk = null, ansInk = null, readTimer = null, nextTimer = null;
 const READ_WAIT = 900;   // ペンをはなしてから、答えを読みとるまでの時間（ミリ秒）
 
@@ -1738,7 +2040,8 @@ function screenHome(){
       <span class="switches"><a class="switch" href="science.html">理科</a><a class="switch" href="kokugo.html">国語</a><a class="switch" href="shakai.html">社会</a><a class="switch" href="eigo.html">英語</a><a class="switch" href="kiroku.html">がんばり</a></span>
     </div>
     <p class="lead">単元をえらぶと、毎回ちがう問題が出ます。答えはぜんぶ整数で、文章問題もまざります。</p>
-    ${reviewHomeHTML()}
+    ${rankHTML()}
+    ${menuHTML()}
     <div class="menu">
       ${UNITS.map(u => `
         <button class="unit" data-unit="${u.id}">
@@ -1748,15 +2051,17 @@ function screenHome(){
     </div>
     <div class="count">
       <span>レベル</span>
-      <button data-lv="basic" aria-pressed="${state.level !== 'adv'}">きほん</button>
+      <button data-lv="auto" aria-pressed="${state.level === 'auto'}">じどう</button>
+      <button data-lv="basic" aria-pressed="${state.level === 'basic'}">きほん</button>
       <button data-lv="adv" aria-pressed="${state.level === 'adv'}">おうよう</button>
     </div>
-    ${state.level === 'adv' ? '<p class="lv-note">おうよう：中1の範囲のまま、<b>いくつかの手順を組み合わせて考える問題</b>が出ます（平均の工夫、規則性、方程式の文章題など）。むずかしいと感じたら、きほんにもどって大丈夫です。</p>' : ''}
+    ${state.level === 'auto' ? '<p class="lv-note">じどう：よくできている分野では、すこしむずかしい<b>おうよう</b>の問題がまざります。まだのところは きほん のままです。<b>正解が8〜9わりくらい</b>になるように合わせています（そのくらいのときが、いちばん力がのびます）。</p>' : state.level === 'adv' ? '<p class="lv-note">おうよう：中1の範囲のまま、<b>いくつかの手順を組み合わせて考える問題</b>が出ます（平均の工夫、規則性、方程式の文章題など）。むずかしいと感じたら、きほんにもどって大丈夫です。</p>' : ''}
     <div class="count">
       <span>問題数</span>
       ${[5, 10, 20].map(n => `<button data-n="${n}" aria-pressed="${state.total === n}">${n}問</button>`).join('')}
     </div>
-    <p class="tip">計算は、計算スペースに書きながら考えよう。書くと、頭の中で覚えておくことがへるので計算に集中でき、まちがいにも気づきやすくなります。<br>まちがえた問題は<b>復習ボックス</b>に入り、1日後・3日後・1週間後…と、わすれたころに出しなおされます。</p>`;
+    <p class="tip">計算は、計算スペースに書きながら考えよう。書くと、頭の中で覚えておくことがへるので計算に集中でき、まちがいにも気づきやすくなります。<br>まちがえた問題は<b>復習ボックス</b>に入り、1日後・3日後・1週間後…と、わすれたころに出しなおされます。</p>
+    ${mapHTML(false)}`;
 
   app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
     state.total = Number(b.dataset.n);
@@ -1771,11 +2076,7 @@ function screenHome(){
     state.unit = b.dataset.unit;
     startQuiz(makeQuestions(state.unit, state.total, state.level));
   });
-  const rv = document.getElementById('go-review');
-  if (rv) rv.onclick = () => {
-    state.unit = 'review';
-    startQuiz(makeReviewQuestions(state.total), 'review');
-  };
+  bindMenu();
 }
 
 /* ---- 出題画面 ---- */
@@ -1784,6 +2085,8 @@ function startQuiz(questions, mode){
   state.mode = mode || 'normal';
   state.retried = new Set();   // 同じ回の中で「もう一度」を出した項目
   state.grad = 0;              // この回で復習ボックスを卒業した数
+  state.touched = new Set();   // この回でさわった項目（習得マップで光らせる）
+  state.recalled = 0;          // 日をあけてから思い出せた数（ランクが上がった理由に使う）
   state.i = 0;
   state.input = '';
   state.read = null;
@@ -1932,15 +2235,24 @@ function submit(){
   const mine = Number(state.input);
   const ok = mine === q.answer;
   state.results.push({ q, mine, ok });
+  // 復習ボックスを進める前に、前に正解した日からの日数を見ておく（「◯日ぶりに思い出せた」に使う）
+  const b0 = q.item ? getBox()[q.item] : null;
+  const gap = (b0 && b0.d) ? today() - b0.d : 0;
+  const left = b0 ? Math.max(0, BOX_STEPS.length - Math.min((b0.n || 0) + 1, BOX_STEPS.length)) : 0;
   const grad = ok ? boxHit(q) : false;
   if (grad) state.grad++;
+  if (ok && gap >= 3) state.recalled++;
+  if (q.item) state.touched.add(q.item);
+  if (!q.review && !q.again) pushRec(q.unit, ok);   // じどうレベルの判断に使う（復習・もう一度は数えない）
   if (!ok){ boxMiss(q); queueRetry(q); }
   logQuestion(q, ok, grad);
 
   const go = document.getElementById('go');
   if (ok){
     // ほめるのは「頭のよさ」ではなく、やり方やがんばり
-    const praise = q.again ? '間をあけて、もう一度できたね'
+    const praise = grad ? `間をあけて ${BOX_STEPS.length}回できました。身についたね`
+      : gap >= 3 ? `${gap}日ぶりに思い出せたね${left ? `（あと${left}回で身につく）` : ''}`
+      : q.again ? '間をあけて、もう一度できたね'
       : q.review ? '前にまちがえた問題を思い出せたね'
       : workInk.strokes.length ? '式を書いて考えられたね'
       : pick(['ていねいに計算できたね', '手順どおりにできたね', '集中できているね', 'その調子で続けよう']);
@@ -2024,6 +2336,8 @@ function screenResult(){
   const wrong = state.results.filter(r => !r.ok);
   const right = state.results.length - wrong.length;
   if (state.results.length) logSession(state.unit, state.mode, state.results.length, right, time);
+  const up = state.results.length ? bumpRank() : null;   // ランクが上がったか（記録を残したあとで見る）
+  const news = advNewsHTML();                            // じどうで「おうよう」に上がった分野の知らせ
 
   app.innerHTML = `
     <div class="score">
@@ -2031,6 +2345,7 @@ function screenResult(){
       <p class="msg">${resultMessage(right, state.results.length)}</p>
       <div class="sub">かかった時間 ${fmtTime(time)}</div>
     </div>
+    ${rankUpHTML(up)}
     <div class="review">
       ${wrong.length === 0 ? '<h2>全問正解です。</h2>' : '<h2>まちがえた問題（タップすると、とき方が見られます）</h2>' + wrong.map(r => `
         <details class="row">
@@ -2041,11 +2356,13 @@ function screenResult(){
           <div class="row-ex">${stepsHTML(r.q)}</div>
         </details>`).join('')}
     </div>
+    ${news}
     ${boxStateHTML(state.grad)}
+    ${mapHTML(true)}
     <div class="acts">
       ${wrong.length ? '<button id="again-wrong">まちがえた問題を、別の問題でもう一度</button>' : ''}
       ${dueKeys().length ? `<button id="go-review" class="${wrong.length ? 'ghost' : ''}">今日の復習のつづき（${dueKeys().length}問）</button>` : ''}
-      ${state.mode === 'review' ? '' : `<button id="again" class="${wrong.length || dueKeys().length ? 'ghost' : ''}">同じ単元でもう一度</button>`}
+      ${state.mode === 'review' || !UNITS.some(u => u.id === state.unit) ? '' : `<button id="again" class="${wrong.length || dueKeys().length ? 'ghost' : ''}">同じ単元でもう一度</button>`}
       <button id="home" class="ghost">単元をえらびなおす</button>
     </div>`;
 
